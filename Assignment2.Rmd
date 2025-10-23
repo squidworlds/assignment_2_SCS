@@ -1,0 +1,11 @@
+---
+title: "Assignment 2"
+output: html_document
+date: "2025-10-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
