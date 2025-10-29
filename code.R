@@ -1,4 +1,12 @@
+library(tidyverse)
+library(readxl)
+library(fitdistrplus)
+library(viridis)
+library(dplyr)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+data <- read_excel("C:/Users/Saioa/OneDrive - University of Edinburgh/y4s1/SCS/assignment_2_SCS/SCS_BAC_and_BrAC_split_TOP.xlsx")
 
 data$Sex <- as.factor(data$Sex)
 
@@ -35,25 +43,20 @@ sex_plot <- ggplot(data, aes(x = Sex, y = `Beta60 (g/kg/h)`,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
-(weight_plot + height_plot) /
-  (age_plot + sex_plot) /
-  plot_layout(ncol = 1) +
-  plot_annotation(
-    title = "Beta60 vs Characteristics Plots",
-    theme = theme(plot.title = element_text(size = 16, face = "bold"))
-  )
+# (weight_plot + height_plot) /
+#   (age_plot + sex_plot) /
+#   plot_layout(ncol = 1) +
+#   plot_annotation(
+#     title = "Beta60 vs Characteristics Plots",
+#     theme = theme(plot.title = element_text(size = 16, face = "bold"))
+#   )
 
 #%%%%%%%%%%%%%%%%%%%% BETA DISTRIBUTION TESTING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-library(tidyverse)
-library(readxl)
-library(fitdistrplus)
 
-df <- read_excel("C:/Users/Saioa/OneDrive - University of Edinburgh/y4s1/SCS/assignment_2_SCS/SCS_BAC_and_BrAC_split_TOP.xlsx")
+data$beta_60 <- df$`Beta60 (g/kg/h)`
 
-df$beta_60 <- df$`Beta60 (g/kg/h)`
-
-density_plot <- ggplot(df, aes(x = beta_60)) +
+density_plot <- ggplot(data, aes(x = beta_60)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005,
                  fill = "lightgreen",
@@ -75,12 +78,46 @@ density_plot <- ggplot(df, aes(x = beta_60)) +
 
 density_plot
 
-quantile(df$beta_60, 0.025)
+quantile(data$beta_60, 0.025)
 
-gamma_fit <- fitdist(-df$beta_60, distr = "gamma", method = "mle")
+gamma_fit <- fitdist(-data$beta_60, distr = "gamma", method = "mle")
 summary(gamma_fit)
 par(mar=c(1, 1, 1, 1))
 plot(gamma_fit)
 
-beta_fit <- fitdist(df$beta_60, distr = "beta", method = "mle")
+beta_fit <- fitdist(data$beta_60, distr = "beta", method = "mle")
 summary(beta_fit)
+
+# sex density plot
+data <- read_excel("C:/Users/Saioa/OneDrive - University of Edinburgh/y4s1/SCS/assignment_2_SCS/SCS_BAC_and_BrAC_split_TOP.xlsx")
+data$beta_60 <- df$`Beta60 (g/kg/h)`
+data$Sex <- as.factor(data$Sex)
+data
+
+# compute group statistics
+stats <- data %>%
+  group_by(Sex) %>%
+  summarize(
+    mean = mean(beta_60),
+    q025 = quantile(beta_60, 0.025),
+    q975 = quantile(beta_60, 0.975)
+  )
+
+stats
+
+# plot
+sex_density_plot <- ggplot(data, aes(x = beta_60, color = Sex, fill = Sex)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005, alpha = 0.55, position = "identity") +
+  geom_density(size = 1, alpha= 0) +
+  geom_vline(data = stats, aes(xintercept = mean, color = Sex),
+             linetype = "dashed", size = 1) +
+  geom_vline(data = stats, aes(xintercept = q025, color = Sex),
+             linetype = "dotted", size = 1) +
+  geom_vline(data = stats, aes(xintercept = q975, color = Sex),
+             linetype = "dotted", size = 1) +
+  theme_minimal() +
+  labs(x = "beta_60", y = "Density", title = "Distribution of beta_60 by Sex")
+
+sex_density_plot
+
