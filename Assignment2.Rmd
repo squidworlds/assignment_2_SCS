@@ -1,15 +1,192 @@
 ---
 title: "Assignment 2"
-output: html_document
-date: "2025-10-23"
+author: Group 20, Aliya Mosha (s2206786), Saioa Galvin (s2516907), Hugh Graham (s2318382),
+  (... words)
+date: "2025-10-29"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
-```{r setup, include=FALSE}
+```{r load_packages, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(afex))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(viridis))
+suppressPackageStartupMessages(library(gridExtra))
+suppressPackageStartupMessages(library(patchwork))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(cv))
+suppressPackageStartupMessages(library(stringr))
+theme_set(theme_bw())
 ```
 
-```{r}
+```{r reading_code, code=readLines("code.R"), eval=TRUE, echo=FALSE, message=FALSE}
+source("code.R")
+```
 
+```{r data_wrangling, echo = FALSE, message = FALSE, fig.width=20, fig.height=40, fig.align='center'}
+# --- data wrangling ---
 data <- read_excel("SCS_BAC_and_BrAC_split_TOP.xlsx")
+data$sex <- as.factor(data$Sex)
+data$beta60 <- data$`Beta60 (g/kg/h)`
+data$weight <- data$`Weight (kg)`
+data$height <- data$`Height (cm)`
+data$age <- data$`Age (years)`
+data$beta <- -data$beta60
+```
 
+# Executive Summary
+
+# Task 1
+
+## Exploratory Data Analysis
+
+```{r eda, echo = FALSE, message = FALSE, fig.width=20, fig.height=10, fig.align='center'}
+# --- beta60 EDA ---
+
+# beta60 vs weight
+weight_plot <- ggplot(data, aes(x=weight, y=beta60, colour = sex)) +
+  geom_point() +
+  geom_smooth(method="lm", color="navy") +
+  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  labs(title="Figure 1: Beta60 vs Weight", x="Weight (kg)", y="Beta60 (g/kg/h)")
+
+# beta60 vs height
+height_plot <- ggplot(data, aes(x=height, y=beta60, colour = sex)) +
+  geom_point() +
+  geom_smooth(method="lm", color="navy") +
+  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  labs(title="Figure 2: Beta60 vs Height", x="Weight (cm)", y="Beta60 (g/kg/h)")
+
+# beta60 vs age
+age_plot <- ggplot(data, aes(x=age, y=beta60, colour = sex)) +
+  geom_point() +
+  geom_smooth(method="lm", color="navy") +
+  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  labs(title="Figure 3: Beta60 vs Age", x="Age (years)", y="Beta60 (g/kg/h)")
+
+# beta60 vs gender
+sex_plot <- ggplot(data, aes(x = sex, y = beta60,
+                             fill = sex)) +
+  geom_violin(alpha = 0.8) +
+  geom_boxplot(width = 0.2, color = "navy", alpha = 0.7) +
+  scale_fill_manual(values = c("lightblue", "steelblue")) +
+  labs(
+    title = "Figure 4: Beta60 vs Gender",
+    x = "Gender",
+    y = "Beta60 (g/kg/h)"
+  ) +
+  guides(fill = "none") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+(weight_plot + height_plot) /
+  (age_plot + sex_plot) /
+  plot_layout(ncol = 1) +
+  plot_annotation(
+    title = "Beta60 vs Characteristics Plots",
+    theme = theme(plot.title = element_text(size = 16, face = "bold"))
+  )
+```
+
+```{r correlations, echo=FALSE, message=FALSE}
+# pairwise correlations between characteristics and beta60
+corr <- data %>% 
+  select(beta60, weight, age, height) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  round(3)
+
+print(corr)
+
+# quantiles of beta60
+quantile(data$beta60, probs = c(0.025, 0.5, 0.975))
+
+print(quantile)
+```
+
+## Modelling Beta
+
+### Linear Model Method
+```{r modelling_beta, echo = FALSE, message = FALSE, fig.width=20, fig.height=10, fig.align='center'}
+# --- linear modelling beta 60 attempt ---
+
+# model incorporating all characteristics
+model <- lm(beta60 ~ weight + age + height + sex, data = data)
+summary(model)
+
+# Residual plots
+par(mfrow = c(2,2))
+plot(model)
+```
+
+### Finding Distribution Method
+
+```{r beta_dist, echo=FALSE, message=FALSE}
+
+density_plot <- ggplot(data, aes(x = beta60)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005,
+                 fill = "navy",
+                 alpha = 0.55) +
+  geom_density(color = "navy", 
+               size = 1) +
+  geom_vline(aes(xintercept=mean(beta60)),
+             linetype = "dashed",
+             color = "navy",
+             size = 1) +
+  geom_vline(aes(xintercept=quantile(beta60, 0.025)),
+             linetype = "dotted",
+             color = "navy",
+             size = 1) +
+  geom_vline(aes(xintercept=quantile(beta60, 0.975)),
+             linetype = "dotted",
+             color = "navy",
+             size = 1)
+
+# compute group statistics
+stats <- data %>%
+  group_by(Sex) %>%
+  summarize(
+    mean = mean(beta60),
+    q025 = quantile(beta60, 0.025),
+    q975 = quantile(beta60, 0.975)
+  )
+
+# plot
+sex_density_plot <- ggplot(data, aes(x = beta60, color = Sex, fill = Sex)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005, alpha = 0.55, position = "identity") +
+  geom_density(size = 1, alpha= 0) +
+  geom_vline(data = stats, aes(xintercept = mean, color = Sex),
+             linetype = "dashed", size = 1) +
+  geom_vline(data = stats, aes(xintercept = q025, color = Sex),
+             linetype = "dotted", size = 1) +
+  geom_vline(data = stats, aes(xintercept = q975, color = Sex),
+             linetype = "dotted", size = 1) +
+  scale_color_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_fill_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  theme_minimal() +
+  theme_minimal() +
+  labs(x = "beta_60", y = "Density", title = "Distribution of Beta60 (g/kg/h) by Sex")
+
+density_plot
+sex_density_plot
+
+```
+
+```{r comparing_dists, echo=FALSE, message=FALSE}
+gamma_fit <- fitdist(-data$beta60, distr = "gamma", method = "mle")
+summary(gamma_fit)
+par(mar=c(1, 1, 1, 1))
+plot(gamma_fit)
+
+beta_fit <- fitdist(data$beta60, distr = "beta", method = "mle")
+summary(beta_fit)
+par(mar=c(1, 1, 1, 1))
+plot(beta_fit)
 ```

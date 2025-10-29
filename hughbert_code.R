@@ -74,11 +74,9 @@ quantile(data$beta60, probs = c(0.025, 0.5, 0.975))
 # --- linear modelling beta 60 attempt ---
 
 # model incorporating all characteristics
-model <- lm(beta60 ~ weight+
-                 age + height + sex
-                 , data = data)
+model <- lm(beta60 ~ weight + age + height + sex, data = data)
 summary(model)
-
+http://127.0.0.1:39811/graphics/ad1037ac-b58b-43d8-8acf-eb01ec5f6dea.png
 # Residual plots
 par(mfrow = c(2,2))
 plot(model)
