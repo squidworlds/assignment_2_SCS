@@ -23,6 +23,7 @@ suppressPackageStartupMessages(library(patchwork))
 suppressPackageStartupMessages(library(kableExtra))
 suppressPackageStartupMessages(library(cv))
 suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(fitdistrplus))
 theme_set(theme_bw())
 ```
 
@@ -185,7 +186,7 @@ summary(gamma_fit)
 par(mar=c(1, 1, 1, 1))
 plot(gamma_fit)
 
-beta_fit <- fitdist(data$beta60, distr = "beta", method = "mle")
+beta_fit <- fitdist(-data$beta60, distr = "beta", method = "mle")
 summary(beta_fit)
 par(mar=c(1, 1, 1, 1))
 plot(beta_fit)
