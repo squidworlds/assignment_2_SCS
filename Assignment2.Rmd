@@ -116,6 +116,7 @@ print(quantiles)
 ## Modelling Beta
 
 ### Linear Model Method
+
 ```{r modelling_beta, echo = FALSE, message = FALSE, fig.width=20, fig.height=10, fig.align='center'}
 # --- linear modelling beta 60 attempt ---
 
@@ -141,7 +142,6 @@ plot(sqrt_model)
 
 
 ```
-
 
 ### Finding Distribution Method
 
@@ -258,8 +258,27 @@ kable(results_table, digits = 3,
       caption = "Comparison of estimated C₀ values for the population and model-based approaches")
 ```
 
-
 ## Task 3
+
+If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). Widmark's equation can be written as
+
+$$
+C_t = \frac{A}{\text{Weight} \times V_d} - \beta t,
+$$
+
+where $A$ is the observed does of alcohol consumed, $\text{Weight}$ is the weight of the individual, and $V_d$ is a parameter known as the volume of distribution. Rearranging this equation we find
+
+$$
+C_0 = C_t +\beta_t = \frac{A}{\text{Weight} \times V_d},
+$$
+
+which in turn implies
+
+$$
+V_d = \frac{A}{\text{Weight} \times C_0}.
+$$
+
+Hence, given we are provided the data for $A$, $\text{Weight}$, and $C_0$, we can calculate $V_d$ using the above equation.
 
 ```{r task_3, echo=FALSE, message=FALSE}
 
