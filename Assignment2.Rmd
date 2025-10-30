@@ -4,8 +4,8 @@ author: Group 20, Aliya Mosha (s2206786), Saioa Galvin (s2516907), Hugh Graham (
   (... words)
 date: "2025-10-29"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r load_packages, include=FALSE}
@@ -24,10 +24,12 @@ suppressPackageStartupMessages(library(kableExtra))
 suppressPackageStartupMessages(library(cv))
 suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(fitdistrplus))
+suppressPackageStartupMessages(library(readxl))
+
 theme_set(theme_bw())
 ```
 
-```{r reading_code, code=readLines("code.R"), eval=TRUE, echo=FALSE, message=FALSE}
+```{r reading_code, code=readLines("code.R"), eval=FALSE, echo=FALSE, message=FALSE}
 source("code.R")
 ```
 
@@ -96,18 +98,19 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
 ```
 
 ```{r correlations, echo=FALSE, message=FALSE}
+library(dplyr)
+
 # pairwise correlations between characteristics and beta60
-corr <- data %>% 
-  select(beta60, weight, age, height) %>%
+corr <- data %>%
+  dplyr::select(beta60, weight, age, height) %>%
   cor(use = "pairwise.complete.obs") %>%
   round(3)
 
 print(corr)
 
 # quantiles of beta60
-quantile(data$beta60, probs = c(0.025, 0.5, 0.975))
-
-print(quantile)
+quantiles <- quantile(data$beta60, probs = c(0.025, 0.5, 0.975))
+print(quantiles)
 ```
 
 ## Modelling Beta
@@ -124,6 +127,21 @@ summary(model)
 par(mfrow = c(2,2))
 plot(model)
 ```
+
+```{r}
+
+# Try modelling square root of beta (residual plots indicate a slight quadratic mean-variance relationship)
+
+sqrt_model <- lm(sqrt((-1)*beta60) ~ weight + age + height + sex, data = data)
+summary(sqrt_model)
+
+# Residual plots
+par(mfrow = c(2,2))
+plot(sqrt_model)
+
+
+```
+
 
 ### Finding Distribution Method
 
@@ -190,6 +208,11 @@ beta_fit <- fitdist(-data$beta60, distr = "beta", method = "mle")
 summary(beta_fit)
 par(mar=c(1, 1, 1, 1))
 plot(beta_fit)
+
+normal_fit <- fitdist(-data$beta60, distr = "norm", method = "mle")
+summary(normal_fit)
+par(mar=c(1, 1, 1, 1))
+plot(normal_fit)
 ```
 
 ## Task 2
