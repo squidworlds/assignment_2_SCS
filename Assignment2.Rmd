@@ -50,7 +50,7 @@ data$beta <- -data$beta60
 
 ## Exploratory Data Analysis
 
-```{r eda, echo = FALSE, message = FALSE, fig.width=20, fig.height=10, fig.align='center'}
+```{r eda, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 # --- beta60 EDA ---
 
 # beta60 vs weight
@@ -97,7 +97,7 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
   )
 ```
 
-```{r correlations, echo=FALSE, message=FALSE}
+```{r correlations, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 library(dplyr)
 
 # pairwise correlations between characteristics and beta60
@@ -115,37 +115,11 @@ print(quantiles)
 
 ## Modelling Beta
 
-### Linear Model Method
-
-```{r modelling_beta, echo = FALSE, message = FALSE, fig.width=20, fig.height=10, fig.align='center'}
-# --- linear modelling beta 60 attempt ---
-
-# model incorporating all characteristics
-model <- lm(beta60 ~ weight + age + height + sex, data = data)
-summary(model)
-
-# Residual plots
-par(mfrow = c(2,2))
-plot(model)
-```
-
-```{r}
-
-# Try modelling square root of beta (residual plots indicate a slight quadratic mean-variance relationship)
-
-sqrt_model <- lm(sqrt((-1)*beta60) ~ weight + age + height + sex, data = data)
-summary(sqrt_model)
-
-# Residual plots
-par(mfrow = c(2,2))
-plot(sqrt_model)
-
-
-```
-
 ### Finding Distribution Method
 
-```{r beta_dist, echo=FALSE, message=FALSE}
+An issue with creating a distribution from the Beta_60 values given, is that we only have 100 data points. Therefore the distribution is very dependent on not many datapoints. We propose instead investigating if beta_60 follows a standard distribution. First, we will look at the spread of beta_60 values given in the following histogram.
+
+```{r density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 density_plot <- ggplot(data, aes(x = beta60)) +
   geom_histogram(aes(y = after_stat(density)),
@@ -165,8 +139,15 @@ density_plot <- ggplot(data, aes(x = beta60)) +
   geom_vline(aes(xintercept=quantile(beta60, 0.975)),
              linetype = "dotted",
              color = "navy",
-             size = 1)
+             size = 1) +
+  labs(x = "beta_60", y = "Density", title = "Distribution of Beta60 (g/kg/h)")
 
+density_plot
+```
+
+We have seen from exploratory data analysis that the rate at which alcohol density in the blood decreases is dependent on a range of variables given in the data. As Sex is the only discrete variable, we can split the data in two to see how beta is distributed for males and females in the dataset given.
+
+```{r sex_density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 # compute group statistics
 stats <- data %>%
   group_by(Sex) %>%
@@ -179,7 +160,7 @@ stats <- data %>%
 # plot
 sex_density_plot <- ggplot(data, aes(x = beta60, color = Sex, fill = Sex)) +
   geom_histogram(aes(y = after_stat(density)),
-                 binwidth = 0.005, alpha = 0.55, position = "identity") +
+                 binwidth = 0.005, alpha = 0.4, position = "identity") +
   geom_density(size = 1, alpha= 0) +
   geom_vline(data = stats, aes(xintercept = mean, color = Sex),
              linetype = "dashed", size = 1) +
@@ -190,43 +171,95 @@ sex_density_plot <- ggplot(data, aes(x = beta60, color = Sex, fill = Sex)) +
   scale_color_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
   scale_fill_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
   theme_minimal() +
-  theme_minimal() +
   labs(x = "beta_60", y = "Density", title = "Distribution of Beta60 (g/kg/h) by Sex")
 
-density_plot
 sex_density_plot
-
 ```
 
-```{r comparing_dists, echo=FALSE, message=FALSE}
-gamma_fit <- fitdist(-data$beta60, distr = "gamma", method = "mle")
-summary(gamma_fit)
-par(mar=c(1, 1, 1, 1))
-plot(gamma_fit)
+This visualisation can point us towards a few different distributions. We can start with normal.
 
-beta_fit <- fitdist(-data$beta60, distr = "beta", method = "mle")
-summary(beta_fit)
-par(mar=c(1, 1, 1, 1))
-plot(beta_fit)
-
+```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 normal_fit <- fitdist(-data$beta60, distr = "norm", method = "mle")
-summary(normal_fit)
 par(mar=c(1, 1, 1, 1))
 plot(normal_fit)
 ```
 
+While this follows the general trend, the data violates the normality assumptions. Therefore we considered the beta distribution.
+
+```{r beta, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+beta_fit <- fitdist(-data$beta60, distr = "beta", method = "mle")
+par(mar=c(1, 1, 1, 1))
+plot(beta_fit)
+```
+
+This is an improved fit compared to the normal distribution, as the empirical and theoretical densities are more aligned, and ... A similar distribution is the gamma distribution.
+
+```{r gamma, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+gamma_fit <- fitdist(-data$beta60, distr = "gamma", method = "mle")
+par(mar=c(1, 1, 1, 1))
+plot(gamma_fit)
+
+gamma_shape <- gamma_fit$estimate[[1]]
+gamma_rate <- gamma_fit$estimate[[2]]
+q025 <- -qgamma(0.975, gamma_shape, gamma_rate)
+```
+
+The 2.5% quantile in this distribution of Beta_60 is -0.2529983. 
+
+Considering that Sex is a factor variable, we can find the distributions of beta_60 dependent on whether the suspect is male of female.
+
+```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+m_data <- data %>% filter(Sex == "male")
+m_gamma_fit <- fitdist(-m_data$beta60, distr = "gamma", method = "mle")
+m_gamma_shape <- m_gamma_fit$estimate[[1]]
+m_gamma_rate <- m_gamma_fit$estimate[[2]]
+m_q025 <- -qgamma(0.975, m_gamma_shape, m_gamma_rate)
+
+f_data <- data %>% filter(Sex == "female")
+f_gamma_fit <- fitdist(-f_data$beta60, distr = "gamma", method = "mle")
+f_gamma_shape <- f_gamma_fit$estimate[[1]]
+f_gamma_rate <- f_gamma_fit$estimate[[2]]
+f_q025 <- -qgamma(0.975, f_gamma_shape, f_gamma_rate)
+
+plot(m_gamma_fit)
+plot(f_gamma_fit)
+
+m_q025
+f_q025
+```
+
+### Linear Model Method
+```{r modelling_beta, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+# --- linear modelling beta 60 attempt ---
+
+# model incorporating all characteristics
+model <- lm(beta60 ~ weight + age + height + sex, data = data)
+summary(model)
+
+# Residual plots
+par(mfrow = c(2,2))
+plot(model)
+```
+
+```{r lm, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+
+# Try modelling square root of beta (residual plots indicate a slight quadratic mean-variance relationship)
+
+sqrt_model <- lm(sqrt((-1)*beta60) ~ weight + age + height + sex, data = data)
+summary(sqrt_model)
+
+# Residual plots
+par(mfrow = c(2,2))
+plot(sqrt_model)
+```
+
+
 ## Task 2
 
-```{r task_2, echo=FALSE, message=FALSE}
+```{r task_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
-# test person info (given in question)
+# setup from question
 test_person <- data.frame(weight = 70, height = 160, age = 70, sex = "female")
-
-# predicted Beta60 using from regression model
-pred_vals <- predict(model, newdata = test_person, interval = "prediction", level = 0.95)
-pred_vals
-
-# Ct and t from question
 Ct <- 0.15
 t  <- 2
 
@@ -238,6 +271,15 @@ beta_pop
 C0_pop <- Ct + beta_pop * t
 C0_pop_abs <- Ct + abs(beta_pop) * t   # absolute values since beta60 is negative
 
+# gamma fitted whole population distribution
+gamma_quantiles <- -qgamma(c(0.975, 0.5, 0.025), gamma_shape, gamma_rate)
+C0_gamma <- Ct + q025 * t
+C0_gamma_abs <- Ct + abs(q025) * t
+
+# predicted Beta60 using regression model
+pred_vals <- predict(model, newdata = test_person, interval = "prediction", level = 0.95)
+pred_vals
+
 # C0 values using model prediction
 beta_pred <- as.numeric(pred_vals)
 names(beta_pred) <- c("Fitted", "Lower (PI 2.5%)", "Upper (PI 97.5%)")
@@ -247,15 +289,15 @@ C0_model_abs <- Ct + abs(beta_pred) * t
 
 # combine results into one comparison table 
 results_table <- tibble(
-  Approach = c("Population (empirical quantiles)", "Model-based (predicted)"),
-  Lower_2.5 = c(C0_pop_abs[1], C0_model_abs[2]),  # note ordering: lwr=2nd col in pred
-  Central   = c(C0_pop_abs[2], C0_model_abs[1]),
-  Upper_97.5 = c(C0_pop_abs[3], C0_model_abs[3])
+  Approach = c("Population (empirical quantiles)", "Model-based (predicted)", "Gamma Fitted"),
+  Lower_2.5 = c(C0_pop_abs[1], C0_model_abs[2], C0_gamma_abs[1]),  # note ordering: lwr=2nd col in pred
+  Central   = c(C0_pop_abs[2], C0_model_abs[1], C0_gamma_abs[2]),
+  Upper_97.5 = c(C0_pop_abs[3], C0_model_abs[3], C0_gamma_abs[3])
 )
 
 kable(results_table, digits = 3,
       col.names = c("Approach", "Lower (2.5%)", "Central", "Upper (97.5%)"),
-      caption = "Comparison of estimated C₀ values for the population and model-based approaches")
+      caption = "Comparison of estimated C₀ values for the population, model-based and gamma-fitting approaches")
 ```
 
 ## Task 3
@@ -280,7 +322,27 @@ $$
 
 Hence, given we are provided the data for $A$, $\text{Weight}$, and $C_0$, we can calculate $V_d$ using the above equation.
 
-```{r task_3, echo=FALSE, message=FALSE}
+If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). Widmark's equation can be written as
+
+$$
+C_t = \frac{A}{\text{Weight} \times V_d} - \beta t,
+$$
+
+where $A$ is the observed does of alcohol consumed, $\text{Weight}$ is the weight of the individual, and $V_d$ is a parameter known as the volume of distribution. Rearranging this equation we find
+
+$$
+C_0 = C_t +\beta_t = \frac{A}{\text{Weight} \times V_d},
+$$
+
+which in turn implies
+
+$$
+V_d = \frac{A}{\text{Weight} \times C_0}.
+$$
+
+Hence, given we are provided the data for $A$, $\text{Weight}$, and $C_0$, we can calculate $V_d$ using the above equation.
+
+```{r task_3, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # define A, Co, Vd
 data$A <- data$`Amount of Alcohol Consumed (g)`

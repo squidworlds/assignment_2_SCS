@@ -85,6 +85,8 @@ gamma_fit <- fitdist(-data$beta_60, distr = "gamma", method = "mle")
 summary(gamma_fit)
 par(mar=c(1, 1, 1, 1))
 plot(gamma_fit)
+q025 <- -qgamma(0.975, gamma_shape, gamma_rate)
+q025
 
 beta_fit <- fitdist(data$beta_60, distr = "beta", method = "mle")
 summary(beta_fit)

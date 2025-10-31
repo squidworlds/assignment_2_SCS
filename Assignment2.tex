@@ -1,0 +1,272 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Assignment 2},
+  pdfauthor={Group 20, Aliya Mosha (s2206786), Saioa Galvin (s2516907), Hugh Graham (s2318382), (\ldots{} words)},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Assignment 2}
+\author{Group 20, Aliya Mosha (s2206786), Saioa Galvin (s2516907), Hugh
+Graham (s2318382), (\ldots{} words)}
+\date{2025-10-29}
+
+\begin{document}
+\maketitle
+
+\section{Executive Summary}\label{executive-summary}
+
+\section{Task 1}\label{task-1}
+
+\subsection{Exploratory Data Analysis}\label{exploratory-data-analysis}
+
+\begin{center}\includegraphics{Assignment2_files/figure-latex/eda-1} \end{center}
+
+\subsection{Modelling Beta}\label{modelling-beta}
+
+\subsubsection{Linear Model Method}\label{linear-model-method}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = beta60 ~ weight + age + height + sex, data = data)
+## 
+## Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.072505 -0.019197  0.004088  0.020688  0.057851 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) -0.3390803  0.0827796  -4.096 8.83e-05 ***
+## weight       0.0003360  0.0004130   0.814    0.418    
+## age         -0.0001853  0.0003436  -0.539    0.591    
+## height       0.0007322  0.0005333   1.373    0.173    
+## sexmale      0.0114824  0.0091329   1.257    0.212    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.0302 on 95 degrees of freedom
+## Multiple R-squared:  0.1951, Adjusted R-squared:  0.1612 
+## F-statistic: 5.756 on 4 and 95 DF,  p-value: 0.0003427
+\end{verbatim}
+
+\begin{center}\includegraphics{Assignment2_files/figure-latex/modelling_beta-1} \end{center}
+
+\subsubsection{Finding Distribution
+Method}\label{finding-distribution-method}
+
+\begin{verbatim}
+## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+## i Please use `linewidth` instead.
+## This warning is displayed once every 8 hours.
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+## generated.
+\end{verbatim}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Assignment2_files/figure-latex/beta_dist-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{Assignment2_files/figure-latex/beta_dist-2.pdf}}
+
+\begin{verbatim}
+## Fitting of the distribution ' gamma ' by maximum likelihood 
+## Parameters : 
+##       estimate Std. Error
+## shape  31.9538   4.495575
+## rate  173.7079  24.631375
+## Loglikelihood:  201.6616   AIC:  -399.3231   BIC:  -394.1128 
+## Correlation matrix:
+##           shape      rate
+## shape 1.0000000 0.9921872
+## rate  0.9921872 1.0000000
+\end{verbatim}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Assignment2_files/figure-latex/comparing_dists-1.pdf}}
+
+\begin{verbatim}
+## Fitting of the distribution ' gamma ' by maximum likelihood 
+## Parameters : 
+##        estimate Std. Error
+## shape  36.15709   6.464269
+## rate  207.83055  37.414923
+## Loglikelihood:  132.2579   AIC:  -260.5158   BIC:  -256.2616 
+## Correlation matrix:
+##           shape      rate
+## shape 1.0000000 0.9930942
+## rate  0.9930942 1.0000000
+\end{verbatim}
+
+\begin{verbatim}
+## Fitting of the distribution ' beta ' by maximum likelihood 
+## Parameters : 
+##         estimate Std. Error
+## shape1  25.98367   3.651773
+## shape2 115.25215  16.319133
+## Loglikelihood:  201.4439   AIC:  -398.8878   BIC:  -393.6774 
+## Correlation matrix:
+##           shape1    shape2
+## shape1 1.0000000 0.9882617
+## shape2 0.9882617 1.0000000
+\end{verbatim}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Assignment2_files/figure-latex/comparing_dists-2.pdf}}
+
+\subsection{Task 2}\label{task-2}
+
+\begin{verbatim}
+##         fit        lwr        upr
+## 1 -0.211377 -0.2777516 -0.1450024
+\end{verbatim}
+
+\begin{verbatim}
+##       2.5%        50%      97.5% 
+## -0.2522341 -0.1796290 -0.1264760
+\end{verbatim}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.4853}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1912}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1176}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2059}}@{}}
+\caption{Comparison of estimated C₀ values for the population and
+model-based approaches}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Approach
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Lower (2.5\%)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Central
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Upper (97.5\%)
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Approach
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Lower (2.5\%)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Central
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Upper (97.5\%)
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Population (empirical quantiles) & 0.654 & 0.509 & 0.403 \\
+Model-based (predicted) & 0.706 & 0.573 & 0.440 \\
+\end{longtable}
+
+\subsection{Task 3}\label{task-3}
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  0.4325  0.5983  0.6604  0.6678  0.7328  1.1731
+\end{verbatim}
+
+\begin{verbatim}
+##      2.5%       50%     97.5% 
+## 0.4847473 0.6604483 0.9061965
+\end{verbatim}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Assignment2_files/figure-latex/task_3-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{Assignment2_files/figure-latex/task_3-2.pdf}}
+
+\begin{verbatim}
+## 
+##  Pearson's product-moment correlation
+## 
+## data:  data$beta60 and data$Vd
+## t = 4.3675, df = 98, p-value = 3.122e-05
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.2250757 0.5559863
+## sample estimates:
+##       cor 
+## 0.4036489
+\end{verbatim}
+
+\end{document}
