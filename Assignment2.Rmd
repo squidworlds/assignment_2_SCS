@@ -402,10 +402,133 @@ sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
     theme = theme(plot.title = element_text(size = 16, face = "bold"))
   )
 
-# test correlation to investigate independent assumption
-cor.test(data$beta60, data$Vd, use = "complete.obs")
-
-# view quantiles of each coefficient for comparison
-beta_range <- quantile(data$beta60, probs = c(0.025, 0.975))
-Vd_range   <- quantile(data$Vd,     probs = c(0.025, 0.975))
 ```
+
+
+```{r}
+
+# Test correlation to investigate independent assumption
+cor.test(data$beta, data$Vd, use = "complete.obs")
+
+
+# View quantiles of each coefficient for comparison
+beta_range <- quantile(data$beta60, probs = c(0.025, 0.975))
+Vd_range   <- quantile(data$Vd, probs = c(0.025, 0.975))
+
+
+# Scatter plot between beta and V_d
+ggplot(data, aes(x = beta, y = Vd)) +
+  geom_point(aes(color = sex), alpha = 0.6) +
+  geom_smooth(method = "lm", color = "navy") +
+  labs(
+    title = "Relationship between β and Vd",
+    subtitle = paste("Correlation =", round(cor(data$beta, data$Vd, use = "complete.obs"), 3)),
+    x = "β elimination rate (g/kg/h)",
+    y = "Vd (L/kg)"
+  )
+
+```
+
+
+#### **Advantages of Current Method**
+
+- Simplicity: Easy to implement and explain in court
+- Conservative: Using the 97.5th percentiles provides a "benefit of the doubt" to defendants
+- Standardised: Same approach across all cases ensures consistency
+- Transparent: Clear, reproducible methodology
+
+
+#### **Limitations of Current Method**
+
+The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, a Pearson's product-moment correlation analysis reveals a statistically significant negative correlation between these two parameters (correlation coefficient = -0.4036489, p-value = 3.122e-05 < 0.05). This finding directly contradicts the independence assumption underlying the current approach.
+
+Although the official forensic procedure specifies using the 97.5th percentile for both $\beta$ and $V_d$, this convention is based on policy rather than mathematical reasoning. Forensic laboratories apply the same "upper percentile rule" across all parameters to maintain consistency and to err on the side of caution, as using higher parameter values for $\beta$ and $V_d$ generally produces lower blood alcohol estimates. Mathematically Widmark's equation shows that $C_t$ decreases as $\beta$ and $V_d$ both increase, thus the maximum possible value of $C_t$ would occur for low $\beta$ and low $V_d$ values (their 2.5th percentiles). Regardless of which tail is used, the critical statistical issue with the current method is that it assumes that $\beta$ and $V_d$ are independent, when our analysis shows that $\beta$ and $V_d$ have a significant negative correlation.
+
+Assuming independence allows forensic analysts to combine their most extreme values (e.g. highest $\beta$ with highest $V_d$) even though such an extreme combination almost never occurs in practice. This may produce inaccurate $C_t$ estimates, exaggerating how high a person's blood alcohol concentration might have been at the time of interest or significantly underestimating. In statistical terms, the current approach treats the joint distribution of $(\beta, V_d)$ as the product of their marginal distributions, when in reality the joint distribution should account for their negative dependence structure. 
+
+```{r}
+
+# Visualize the joint distribution
+
+ggplot(data, aes(x = beta, y = Vd)) +
+  geom_point(alpha = 0.6, color = "steelblue") +
+  geom_density_2d(color = "navy") +
+  # Add the marginal 97.5th percentiles
+  geom_vline(xintercept = quantile(data$beta, 0.975, na.rm = TRUE), 
+             linetype = "dashed", color = "red", linewidth = 1) +
+  geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
+             linetype = "dashed", color = "red", linewidth = 1) +
+  labs(
+    title = "Joint Distribution of β and Vd",
+    subtitle = "Red lines show marginal 97.5th percentiles",
+    x = "β (g/kg/h)",
+    y = "Vd (L/kg)"
+  ) +
+  annotate("text", 
+           x = quantile(data$beta, 0.975, na.rm = TRUE), 
+           y = min(data$Vd, na.rm = TRUE),
+           label = "97.5th percentile β", 
+           hjust = -0.1, color = "red")
+
+
+```
+
+The above plot of the joint distribution between $\beta$ and $V_d$ shows that there are no points in the top-right corner where both parameters are at their 97.5th marginal quantile simultaneously. 
+
+#### **Potential Alternative Methods**
+
+1. Use the empirical joint distribution of $(\beta, V_d)$ from the data
+2. Model the correlation structure explicitly (e.g. through the use of a linear regression model)
+3. Bayesian approach with prior distributions for $(\beta, V_d)$ specified and incorporated in the calculation (use eye-witness testimony as your "data" in order to calculate the posterior distribution)
+
+#### **Alternative 1: Empirical Joint Distribution**
+
+
+```{r}
+
+# Test person (from task 2)
+A <- mean(data$A) # Chose this kinda randomly but made the most sense to me 
+weight <- 70
+t <- 2
+
+# Calculate Ct using empirical joint distribution
+data$Ct_joint <- (A / (weight * data$Vd)) - data$beta * t
+
+# Compute the quantiles of C_t
+quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975), na.rm = TRUE)
+
+# Current (independent) approach
+beta_ind <- quantile(data$beta, 0.975, na.rm = TRUE)
+Vd_ind   <- quantile(data$Vd, 0.975, na.rm = TRUE)
+Ct_independent <- (A / (weight * Vd_ind)) - beta_ind * t
+
+# Table comparison
+results_compare <- tibble(
+  Method = c("Empirical joint (β,Vd)", "Independent 97.5th percentiles"),
+  Lower_2.5 = c(round(quantile(data$Ct_joint, 0.025, na.rm = TRUE), 3), ""),
+  Median     = c(round(quantile(data$Ct_joint, 0.5, na.rm = TRUE), 3), ""),
+  Upper_97.5 = c(round(quantile(data$Ct_joint, 0.975, na.rm = TRUE), 3), 
+                 round(Ct_independent, 3))
+)
+
+kable(results_compare, align = "lccc",
+      caption = "Comparison of Empirical Joint vs Independent Ct")
+
+```
+
+
+The empirical joint $C_t$ distribution represents the upper and lower bounds of plausible blood alcohol concentrations for an individual with weight 70kg, who consumed the mean grams of alcohol from the sample and was tested 2 hours later.
+
+As seen from the table above this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
+
+
+#### **Alternative 2: Linear Regression**
+
+
+
+
+
+
+
+
+
