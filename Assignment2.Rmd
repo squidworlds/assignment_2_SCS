@@ -25,6 +25,7 @@ suppressPackageStartupMessages(library(cv))
 suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(fitdistrplus))
 suppressPackageStartupMessages(library(readxl))
+suppressPackageStartupMessages(library(quantreg))
 
 theme_set(theme_bw())
 ```
@@ -117,7 +118,7 @@ print(quantiles)
 
 ### Finding Distribution Method
 
-An issue with creating a distribution from the Beta_60 values given, is that we only have 100 data points. Therefore the distribution is very dependent on not many datapoints. We propose instead investigating if beta_60 follows a standard distribution. First, we will look at the spread of beta_60 values given in the following histogram.
+An issue with creating a distribution from the $\beta$ elimination rate values given is that we only have 100 data points. Therefore the distribution is very dependent on not many values. We propose instead investigating if beta_60 follows a standard distribution. First, we will look at the spread of beta_60 values given in the following histogram.
 
 ```{r density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -233,28 +234,86 @@ f_q025
 # --- linear modelling beta 60 attempt ---
 
 # model incorporating all characteristics
-model <- lm(beta60 ~ weight + age + height + sex, data = data)
-summary(model)
+lm_model <- lm(beta60 ~ weight + age + height + sex, data = data)
+summary(lm_model)
 
 # Residual plots
 par(mfrow = c(2,2))
-plot(model)
+plot(lm_model)
 ```
 
 ```{r lm, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # Try modelling square root of beta (residual plots indicate a slight quadratic mean-variance relationship)
 
-sqrt_model <- lm(sqrt((-1)*beta60) ~ weight + age + height + sex, data = data)
-summary(sqrt_model)
+sqrt_lm_model <- lm(sqrt(-1 * beta60) ~ weight + age + height + sex, data = data)
+summary(sqrt_lm_model)
 
 # Residual plots
 par(mfrow = c(2,2))
-plot(sqrt_model)
+plot(sqrt_lm_model)
 ```
 
+### Quantile Linear Model Method
+
+The above method is sensible, as it finds a distribution for $\beta$ given a range of information about the suspect, whether this information is in the form of discrete or continuous form. This is more useful than the method that finds a different beta distribution for males and females, as it is not possible to do the same for continuous information such as age. Therefore the previous methods don't make the most of all the information given. Even the linear model method above has some flaws, as it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model. However, the aim of our analysis is to find the 2.5% quantile of $\beta$. Therefore it is more accurate to use quantile regression.
+
+```{r quantile_reg, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+
+rq_model <- rq(beta60 ~ weight + age + height + sex, data = data, tau = 0.025)
+summary(rq_model)
+
+
+# Residual plots
+par(mfrow = c(2,2))
+plot(summary(rq_model))
+```
+
+```{r comparing_rq, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+
+# Create predicted values
+pred_data <- data
+
+# empirical quantiles for lm
+q025 <- quantile(residuals(lm_model), probs = 0.025)
+pred_data$lm_pred <- predict(lm_model)
+pred_data$lm_q025_empirical <- pred_data$lm_pred + q025
+
+# using quantile regression instead
+pred_data$rq_pred <- predict(rq_model)
+
+# Combine into a long format for ggplot
+plot_data <- pred_data %>%
+  tidyr::pivot_longer(cols = c(lm_q025_empirical, rq_pred),
+                      names_to = "model",
+                      values_to = "predicted_beta")
+
+# Plot
+ggplot(plot_data, aes(x = beta60, y = predicted_beta, color = model)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = expression("Comparing Models for "*beta),
+    x = expression("Actual "*beta),
+    y = expression("Predicted "*beta),
+    color = "Model Type"
+  ) +
+  scale_color_manual(values = c("lm_q025_empirical" = "firebrick", "rq_pred" = "forestgreen"),
+                     labels = c("Linear Regression", "Quantile Regression")) +
+  theme_minimal()
+```
 
 ## Task 2
+
+We will compare the performance of our different approaches outlined in Task 1 with the following case study. 
+
+A 70 year old female (weight: 70kg, height: 160cm) is arrested after being stopped by the police while
+driving. She provides a blood sample to the police 2 hours after her arrest which gives a reading of
+Ct = 0.15g/kg (i.e. grams of alcohol per kilogram of blood). The legal limit is x = 0.47g/kg. The
+police wish to charge her with the criminal offence of driving while over the legal limit.
+
+We can find the $2.5%$ quantile of the different beta distributions
+
 
 ```{r task_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -273,12 +332,22 @@ C0_pop_abs <- Ct + abs(beta_pop) * t   # absolute values since beta60 is negativ
 
 # gamma fitted whole population distribution
 gamma_quantiles <- -qgamma(c(0.975, 0.5, 0.025), gamma_shape, gamma_rate)
-C0_gamma <- Ct + q025 * t
-C0_gamma_abs <- Ct + abs(q025) * t
+C0_gamma <- Ct + gamma_quantiles * t
+C0_gamma_abs <- Ct + abs(gamma_quantiles) * t
+
+# gamma fitted to males
+m_gamma_quantiles <- -qgamma(c(0.975, 0.5, 0.025), m_gamma_shape, m_gamma_rate)
+C0_gamma_m <- Ct + m_gamma_quantiles * t
+C0_gamma_abs_m <- Ct + abs(m_gamma_quantiles) * t
+
+# gamma fitted to females
+f_gamma_quantiles <- -qgamma(c(0.975, 0.5, 0.025), f_gamma_shape, f_gamma_rate)
+C0_gamma_f <- Ct + f_gamma_quantiles * t
+C0_gamma_abs_f <- Ct + abs(f_gamma_quantiles) * t
 
 # predicted Beta60 using regression model
-pred_vals <- predict(model, newdata = test_person, interval = "prediction", level = 0.95)
-pred_vals
+lm_pred_vals <- predict(lm_model, newdata = test_person, interval = "prediction", level = 0.95)
+lm_pred_vals
 
 # C0 values using model prediction
 beta_pred <- as.numeric(pred_vals)
@@ -289,10 +358,10 @@ C0_model_abs <- Ct + abs(beta_pred) * t
 
 # combine results into one comparison table 
 results_table <- tibble(
-  Approach = c("Population (empirical quantiles)", "Model-based (predicted)", "Gamma Fitted"),
-  Lower_2.5 = c(C0_pop_abs[1], C0_model_abs[2], C0_gamma_abs[1]),  # note ordering: lwr=2nd col in pred
-  Central   = c(C0_pop_abs[2], C0_model_abs[1], C0_gamma_abs[2]),
-  Upper_97.5 = c(C0_pop_abs[3], C0_model_abs[3], C0_gamma_abs[3])
+  Approach = c("Population (empirical quantiles)", "Model-based (predicted)", "Gamma Fitted", "Male Gamma Fitted", "Female Gamma Fitted"),
+  Lower_2.5 = c(C0_pop_abs[1], C0_model_abs[2], C0_gamma_abs[1], C0_gamma_abs_m[1], C0_gamma_abs_f[1]),  # note ordering: lwr=2nd col in pred
+  Central   = c(C0_pop_abs[2], C0_model_abs[1], C0_gamma_abs[2], C0_gamma_abs_m[2], C0_gamma_abs_f[2]),
+  Upper_97.5 = c(C0_pop_abs[3], C0_model_abs[3], C0_gamma_abs[3], C0_gamma_abs_m[3], C0_gamma_abs_f[3])
 )
 
 kable(results_table, digits = 3,

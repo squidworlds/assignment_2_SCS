@@ -3,6 +3,7 @@ library(readxl)
 library(fitdistrplus)
 library(viridis)
 library(dplyr)
+library(quantreg)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -55,45 +56,66 @@ sex_plot <- ggplot(data, aes(x = Sex, y = `Beta60 (g/kg/h)`,
 #%%%%%%%%%%%%%%%%%%%% BETA DISTRIBUTION TESTING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-data$beta_60 <- df$`Beta60 (g/kg/h)`
+data$beta60 <- df$`Beta60 (g/kg/h)`
 
-density_plot <- ggplot(data, aes(x = beta_60)) +
+density_plot <- ggplot(data, aes(x = beta60)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005,
                  fill = "lightgreen",
                  alpha = 0.55) +
   geom_density(color = "seagreen", 
                size = 1) +
-  geom_vline(aes(xintercept=mean(beta_60)),
+  geom_vline(aes(xintercept=mean(beta60)),
              linetype = "dashed",
              color = "seagreen",
              size = 1) +
-  geom_vline(aes(xintercept=quantile(beta_60, 0.025)),
+  geom_vline(aes(xintercept=quantile(beta60, 0.025)),
              linetype = "dashed",
              color = "seagreen",
              size = 1) +
-  geom_vline(aes(xintercept=quantile(beta_60, 0.975)),
+  geom_vline(aes(xintercept=quantile(beta60, 0.975)),
              linetype = "dashed",
              color = "seagreen",
              size = 1)
 
 density_plot
 
-quantile(data$beta_60, 0.025)
+quantile(data$beta60, 0.025)
 
-gamma_fit <- fitdist(-data$beta_60, distr = "gamma", method = "mle")
+# modelling as gamma and finding 2.5% quantile
+gamma_fit <- fitdist(-data$beta60, distr = "gamma", method = "mle")
 summary(gamma_fit)
 par(mar=c(1, 1, 1, 1))
 plot(gamma_fit)
+gamma_shape <- gamma_fit$estimate[[1]]
+gamma_rate <- gamma_fit$estimate[[2]]
 q025 <- -qgamma(0.975, gamma_shape, gamma_rate)
 q025
 
-beta_fit <- fitdist(data$beta_60, distr = "beta", method = "mle")
+# modelling as gamma by sex
+m_data <- data %>% filter(Sex == "male")
+m_gamma_fit <- fitdist(-m_data$beta60, distr = "gamma", method = "mle")
+m_gamma_shape <- m_gamma_fit$estimate[[1]]
+m_gamma_rate <- m_gamma_fit$estimate[[2]]
+m_q025 <- -qgamma(0.975, m_gamma_shape, m_gamma_rate)
+
+f_data <- data %>% filter(Sex == "female")
+f_gamma_fit <- fitdist(-f_data$beta60, distr = "gamma", method = "mle")
+f_gamma_shape <- f_gamma_fit$estimate[[1]]
+f_gamma_rate <- f_gamma_fit$estimate[[2]]
+f_q025 <- -qgamma(0.975, f_gamma_shape, f_gamma_rate)
+
+gamma_quantiles <- -qgamma(c(0.975, 0.5, 0.025), gamma_shape, gamma_rate)#
+gamma_quantiles[2]
+
+
+# beta?
+beta_fit <- fitdist(-data$beta60, distr = "beta", method = "mle")
 summary(beta_fit)
 
 # sex density plot
 data <- read_excel("C:/Users/Saioa/OneDrive - University of Edinburgh/y4s1/SCS/assignment_2_SCS/SCS_BAC_and_BrAC_split_TOP.xlsx")
-data$beta_60 <- df$`Beta60 (g/kg/h)`
+data$beta60 <- df$`Beta60 (g/kg/h)`
 data$Sex <- as.factor(data$Sex)
 data
 
@@ -101,15 +123,15 @@ data
 stats <- data %>%
   group_by(Sex) %>%
   summarize(
-    mean = mean(beta_60),
-    q025 = quantile(beta_60, 0.025),
-    q975 = quantile(beta_60, 0.975)
+    mean = mean(beta60),
+    q025 = quantile(beta60, 0.025),
+    q975 = quantile(beta60, 0.975)
   )
 
 stats
 
 # plot
-sex_density_plot <- ggplot(data, aes(x = beta_60, color = Sex, fill = Sex)) +
+sex_density_plot <- ggplot(data, aes(x = beta60, color = Sex, fill = Sex)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005, alpha = 0.55, position = "identity") +
   geom_density(size = 1, alpha= 0) +
@@ -124,3 +146,8 @@ sex_density_plot <- ggplot(data, aes(x = beta_60, color = Sex, fill = Sex)) +
 
 sex_density_plot
 
+
+# quantile regression
+library(quantreg)
+rqfit <- rq(sqrt((-1)*beta60) ~ weight + age + height + sex, data = data, tau = 0.025)
+summary(rqfit)
