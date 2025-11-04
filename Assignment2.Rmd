@@ -27,7 +27,19 @@ suppressPackageStartupMessages(library(fitdistrplus))
 suppressPackageStartupMessages(library(readxl))
 suppressPackageStartupMessages(library(quantreg))
 
-theme_set(theme_bw())
+theme_set(
+  theme_bw() +
+    theme(
+      plot.title = element_text(size = 20, hjust = 0.5),
+      axis.title.x = element_text(size = 16),
+      axis.title.y = element_text(size = 16),
+      axis.text = element_text(size = 13),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12),
+      plot.caption = element_text(size = 11, hjust = 1),
+      plot.subtitle = element_text(size = 14, face = "italic")
+    )
+)
 ```
 
 ```{r reading_code, code=readLines("code.R"), eval=FALSE, echo=FALSE, message=FALSE}
@@ -122,12 +134,6 @@ From Figures 1-4, we can deduce the following:
 
 To further enhance our investigation into the effect each of these characteristics has on the elimination rate, we can view the following correlation plot, which calculates the pairwise correlations between our variables.
 
-\# quantiles of beta
-
-#quantiles \<- quantile(data\$beta, probs = c(0.025, 0.5, 0.975))
-
-#print(quantiles)
-
 ```{r correlations, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 library(dplyr)
 
@@ -137,7 +143,8 @@ corr <- data %>%
   cor(use = "pairwise.complete.obs") %>%
   round(3)
 
-print(corr)
+kable(corr, digits = 3,
+      caption = "Pairwise Correlations Between Characteristics and Beta")
 ```
 
 From this output, we can see that weight and height have significant correlations with the $\beta$ elimination rate, with respective correlations of -0.356 and -0.410. This suggests that these characteristics play a crucial role in determining the rate at which alcohol is eliminated from the blood stream. As expected, there is a low correlation between age and elimination rate.
@@ -148,191 +155,304 @@ Due to the clear relationships between $\beta$ and characteristics of the tested
 
 ### Finding Distribution Method
 
-An issue with creating a distribution from the $\beta$ elimination rate values given is that we only have 100 data points. Therefore the distribution is very dependent on not many values. We propose instead investigating if beta_60 follows a standard distribution. First, we will look at the spread of beta_60 values given in the following histogram.
+An issue with creating a distribution from the $\beta$ elimination rate values given is that we only have 100 data points. Therefore the distribution is very dependent on not many values. We propose instead investigating if beta_60 follows a standard distribution. First, we will examine the general spread of beta_60 values given in the following histogram.
 
 ```{r density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
-density_plot <- ggplot(data, aes(x = beta60)) +
+density_plot <- ggplot(data, aes(x = beta)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005,
                  fill = "navy",
                  alpha = 0.55) +
   geom_density(color = "navy", 
                size = 1) +
-  geom_vline(aes(xintercept=mean(beta60)),
+  geom_vline(aes(xintercept=mean(beta)),
              linetype = "dashed",
              color = "navy",
              size = 1) +
-  geom_vline(aes(xintercept=quantile(beta60, 0.025)),
+  geom_vline(aes(xintercept=quantile(beta, 0.025)),
              linetype = "dotted",
              color = "navy",
              size = 1) +
-  geom_vline(aes(xintercept=quantile(beta60, 0.975)),
+  geom_vline(aes(xintercept=quantile(beta, 0.975)),
              linetype = "dotted",
              color = "navy",
              size = 1) +
-  labs(x = "beta_60", y = "Density", title = "Distribution of Beta60 (g/kg/h)")
+  labs(x = expression(""*beta), y = "Density", title = expression("Distribution of "*beta))
 
 density_plot
 ```
 
-We have seen from exploratory data analysis that the rate at which alcohol density in the blood decreases is dependent on a range of variables given in the data. As Sex is the only discrete variable, we can split the data in two to see how beta is distributed for males and females in the dataset given.
+We have seen from exploratory data analysis that the rate at which alcohol density in the blood decreases is dependent on a range of variables given in the data. As Sex is the only discrete variable, we can split the data in two to see how $\beta$, the alcohol elimination rate, is distributed for males and females in the dataset given.
 
 ```{r sex_density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 # compute group statistics
 stats <- data %>%
-  group_by(Sex) %>%
+  group_by(sex) %>%
   summarize(
-    mean = mean(beta60),
-    q025 = quantile(beta60, 0.025),
-    q975 = quantile(beta60, 0.975)
+    mean = mean(beta),
+    q025 = quantile(beta, 0.025),
+    q975 = quantile(beta, 0.975)
   )
 
 # plot
-sex_density_plot <- ggplot(data, aes(x = beta60, color = Sex, fill = Sex)) +
+sex_density_plot <- ggplot(data, aes(x = beta, color = sex, fill = sex)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005, alpha = 0.4, position = "identity") +
-  geom_density(size = 1, alpha= 0) +
-  geom_vline(data = stats, aes(xintercept = mean, color = Sex),
+  geom_density(size = 1, alpha = 0) +
+  geom_vline(data = stats, aes(xintercept = mean, color = sex),
              linetype = "dashed", size = 1) +
-  geom_vline(data = stats, aes(xintercept = q025, color = Sex),
+  geom_vline(data = stats, aes(xintercept = q025, color = sex),
              linetype = "dotted", size = 1) +
-  geom_vline(data = stats, aes(xintercept = q975, color = Sex),
+  geom_vline(data = stats, aes(xintercept = q975, color = sex),
              linetype = "dotted", size = 1) +
   scale_color_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
   scale_fill_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  theme_minimal() +
-  labs(x = "beta_60", y = "Density", title = "Distribution of Beta60 (g/kg/h) by Sex")
+  labs(x = expression(""*beta), y = "Density", title = expression("Distribution of "*beta*" by Sex"))
 
 sex_density_plot
 ```
 
-This visualisation can point us towards a few different distributions. We can start with normal.
+These visualisations can point us towards a few different distributions. We can analyse how well the data fits the distributions in the following plots.
+
+#### Residual Plots of Fitted Distributions
 
 ```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
-normal_fit <- fitdist(-data$beta60, distr = "norm", method = "mle")
-par(mar=c(1, 1, 1, 1))
-plot(normal_fit)
+normal_fit <- fitdist(data$beta, distr = "norm", method = "mle")
+beta_fit <- fitdist(data$beta, distr = "beta", method = "mle")
+gamma_fit <- fitdist(data$beta, distr = "gamma", method = "mle")
+
+par(mfrow = c(2, 2), mar = c(4, 4, 2, 1))
+plot.legend <- c("Normal", "Beta", "Gamma")
+denscomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
+qqcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
+cdfcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
+ppcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
 ```
 
-While this follows the general trend, the data violates the normality assumptions. Therefore we considered the beta distribution.
+#### Normal Distribution
 
-```{r beta, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
-beta_fit <- fitdist(-data$beta60, distr = "beta", method = "mle")
-par(mar=c(1, 1, 1, 1))
-plot(beta_fit)
-```
+- `Empirical and Theoretical Densities`: The theoretical peak value is skewed compared to the empirical peak, and has lower density.
+
+- `Q-Q plot`: Lack-of-fit observed at distribution tails. The left tail is heavy while the right tail is light.
+
+- `Empirical and Theoretical CDFs`: Poor fit at central values of the distribution.
+
+- `P-P plot`: Lack-of-fit at the distribution centre, as the central values deviate from the linear relationship. 
+
+#### Beta Distribution
+
+- `Empirical and Theoretical Densities`: Improved fit of peak is observed, while still not completely aligned.
+
+- `Q-Q plot`: Points are randomly distributed above and below the general linear trend, with outliers at the lower tail.
+
+- `Empirical and Theoretical CDFs`: Improved fit at distribution centre compared to normal.
+
+- `P-P plot`: Improved fit at distribution centre compared to normal.
+
+#### Gamma Distribution
+
+- `Empirical and Theoretical Densities`: Best fit of peak of the analysed distributions.
+
+- `Q-Q plot`: Points are randomly distributed above and below the general linear trend across all quantiles.
+
+- `Empirical and Theoretical CDFs`: Best fit of theoretical distribution to data.
+
+- `P-P plot`: Majority of points lie on fitted line.
 
 This is an improved fit compared to the normal distribution, as the empirical and theoretical densities are more aligned, and ... A similar distribution is the gamma distribution.
 
 ```{r gamma, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
-gamma_fit <- fitdist(-data$beta60, distr = "gamma", method = "mle")
-par(mar=c(1, 1, 1, 1))
-plot(gamma_fit)
-
 gamma_shape <- gamma_fit$estimate[[1]]
 gamma_rate <- gamma_fit$estimate[[2]]
-q025 <- -qgamma(0.975, gamma_shape, gamma_rate)
+q025 <- qgamma(0.025, gamma_shape, gamma_rate)
 ```
 
-The 2.5% quantile in this distribution of Beta_60 is -0.2529983.
+
+The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847. 
 
 Considering that Sex is a factor variable, we can find the distributions of beta_60 dependent on whether the suspect is male of female.
 
 ```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+
 m_data <- data %>% filter(Sex == "male")
-m_gamma_fit <- fitdist(-m_data$beta60, distr = "gamma", method = "mle")
+m_gamma_fit <- fitdist(m_data$beta, distr = "gamma", method = "mle")
 m_gamma_shape <- m_gamma_fit$estimate[[1]]
 m_gamma_rate <- m_gamma_fit$estimate[[2]]
-m_q025 <- -qgamma(0.975, m_gamma_shape, m_gamma_rate)
+m_quantiles <- qgamma(c(0.025, 0.5, 0.975), m_gamma_shape, m_gamma_rate)
 
 f_data <- data %>% filter(Sex == "female")
-f_gamma_fit <- fitdist(-f_data$beta60, distr = "gamma", method = "mle")
+f_gamma_fit <- fitdist(f_data$beta, distr = "gamma", method = "mle")
 f_gamma_shape <- f_gamma_fit$estimate[[1]]
 f_gamma_rate <- f_gamma_fit$estimate[[2]]
-f_q025 <- -qgamma(0.975, f_gamma_shape, f_gamma_rate)
+f_quantiles <- qgamma(c(0.025, 0.5, 0.975), f_gamma_shape, f_gamma_rate)
 
-plot(m_gamma_fit)
-plot(f_gamma_fit)
+gamma_sex_df <- data.frame(
+  x = data$beta,
+  male_density   = dgamma(data$beta, shape = m_gamma_shape, rate = m_gamma_rate),
+  female_density = dgamma(data$beta, shape = f_gamma_shape, rate = f_gamma_rate)
+)
 
-m_q025
-f_q025
+gamma_long <- gamma_sex_df %>%
+  pivot_longer(cols = c(male_density, female_density),
+               names_to = "Sex",
+               values_to = "density") %>%
+  mutate(Sex = ifelse(Sex == "male_density", "male", "female"))
+
+stats_gamma <- data.frame(
+  Sex = rep(c("male", "female"), each = 3),
+  Quantile = rep(c("q025", "q50", "q975"), times = 2),
+  value = c(m_quantiles, f_quantiles)
+)
+
+# plot
+sex_gamma_plot <- ggplot(data, aes(x = beta, color = Sex, fill = Sex)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005, alpha = 0.4, position = "identity") +
+  geom_line(data = gamma_long,
+            aes(x = x, y = density, color = Sex),
+            size = 1.2) +
+  geom_vline(
+    data = stats_gamma,
+    aes(xintercept = value, color = Sex, linetype = Quantile),
+    size = 1
+  ) +
+  scale_color_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_fill_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_linetype_manual(
+    values = c("q025" = "dotted", "q50" = "dashed", "q975" = "dotted"),
+    labels = c("2.5%", "50%", "97.5%")
+  ) +
+  labs(
+    x = expression(beta),
+    y = "Density",
+    title = expression("Gamma Distributions of "*beta*" by Sex"),
+    linetype = "Quantile"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 14, face = "bold")
+  )
+
+sex_gamma_plot
 ```
 
+The 2.5% quantile in the gamma distribution for males is 0.1219521, and for females it is 0.1430605.
+
 ### Linear Model Method
+
+Instead of fitting a distribution, we can create a linear model. This creates a distribution for $\beta$ given a range of information about the suspect, whether this information is in the form of discrete or continuous form. This is more useful than the method that finds a different beta distribution for males and females, as it is not possible to do the same for continuous information such as age. Therefore the previous methods don't make the most of all the information given.
+
+We can create the following model, where $\beta_j$ represent the coefficients for $j \in \{0, ..., 4\}$ to model $Y_i$, the $i$ datapoints of $\beta$:
+
+$$
+\begin{aligned}
+\text{linear model}: \quad 
+Y_i &= \beta_0 
++ \beta_1\text{weight}_i 
++ \beta_2\text{age}_i 
++ \beta_3\text{height}_i 
++ \beta_4\text{sex}_i
++ \epsilon_i, \\
+\epsilon_i &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
+\end{aligned}
+$$
+
+#### Residual Plots for Linear Model
 
 ```{r modelling_beta, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 # --- linear modelling beta 60 attempt ---
 
 # model incorporating all characteristics
-lm_model <- lm(beta60 ~ weight + age + height + sex, data = data)
-summary(lm_model)
+lm_model <- lm(beta ~ weight + age + height + sex, data = data)
 
 # Residual plots
 par(mfrow = c(2,2))
 plot(lm_model)
 ```
 
+- `Residual vs Fitted`: There is a change of variance with mean, so the constant variance assumption is slightly violated. Unfortunately there is little data points to establish if this is an important violation.
+
+- `Q-Q Residuals`: The ordered standardised residuals are plotted against quantiles of a standard normal. Lack-of-fit observed at distribution tails. The left tail is heavy while the right tail is light.
+
+- `Scale-Location`: We have random variation around the mean, so there is no violation of the constant variation assumption.
+
+- `Residuals vs Leverage`: This plot gives us Cook’s distance, which measures the change in all model fitted values on omission of the data point in question. From the plot we can see there are no outliers, so there aren't any highly influential points in our data.
+
+To try to resolve these violations of the assumptions on residuals, we can create an alternative linear model. Given that there is a quadratic shape in the `Residuals vs Fitted` graph, we create the following linear model.
+
+$$
+\begin{aligned}
+\text{square root linear model}: \quad 
+\sqrt{Y_i} &= \beta_0 
++ \beta_1\text{weight}_i 
++ \beta_2\text{age}_i 
++ \beta_3\text{height}_i 
++ \beta_4\text{sex}_i
++ \epsilon_i, \\
+\epsilon_i &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
+\end{aligned}
+$$
+
+We get the following residual graphs.
+
+#### Residual Plots for Square Root Linear Model
+
 ```{r lm, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # Try modelling square root of beta (residual plots indicate a slight quadratic mean-variance relationship)
 
-sqrt_lm_model <- lm(sqrt(-1 * beta60) ~ weight + age + height + sex, data = data)
-summary(sqrt_lm_model)
+sqrt_lm_model <- lm(sqrt(beta) ~ weight + age + height + sex, data = data)
 
 # Residual plots
 par(mfrow = c(2,2))
 plot(sqrt_lm_model)
 ```
 
+The `Q-Q Residuals` plot is improved, however there is only marginal change in the `Residuals vs Fitted` plot. Therefore we explore alternative methods.
+
 ### Quantile Linear Model Method
 
-The above method is sensible, as it finds a distribution for $\beta$ given a range of information about the suspect, whether this information is in the form of discrete or continuous form. This is more useful than the method that finds a different beta distribution for males and females, as it is not possible to do the same for continuous information such as age. Therefore the previous methods don't make the most of all the information given. Even the linear model method above has some flaws, as it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model. However, the aim of our analysis is to find the 2.5% quantile of $\beta$. Therefore it is more accurate to use quantile regression.
-
-```{r quantile_reg, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
-
-rq_model <- rq(beta60 ~ weight + age + height + sex, data = data, tau = 0.025)
-summary(rq_model)
-
-
-# Residual plots
-par(mfrow = c(2,2))
-plot(summary(rq_model))
-```
+The biggest issue with the linear model above for use in our project is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model. The aim of our analysis is to find the 2.5% quantile of $\beta$. It is more accurate to use quantile regression. We use the same linear model as above.
 
 ```{r comparing_rq, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # Create predicted values
 pred_data <- data
 
-# empirical quantiles for lm
-q025 <- quantile(residuals(lm_model), probs = 0.025)
+# quantiles for lm
+resid_q025 <- quantile(residuals(lm_model), probs = 0.025)
 pred_data$lm_pred <- predict(lm_model)
-pred_data$lm_q025_empirical <- pred_data$lm_pred + q025
+pred_data$lm_q025 <- pred_data$lm_pred + resid_q025
 
 # using quantile regression instead
+rq_model <- rq(beta ~ weight + age + height + sex, data = data, tau = 0.025)
 pred_data$rq_pred <- predict(rq_model)
 
 # Combine into a long format for ggplot
 plot_data <- pred_data %>%
-  tidyr::pivot_longer(cols = c(lm_q025_empirical, rq_pred),
+  tidyr::pivot_longer(cols = c(lm_q025, rq_pred),
                       names_to = "model",
                       values_to = "predicted_beta")
 
 # Plot
-ggplot(plot_data, aes(x = beta60, y = predicted_beta, color = model)) +
+quantile_v_lm_plot <- ggplot(plot_data, aes(x = beta, y = predicted_beta, color = model)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
-    title = expression("Comparing Models for "*beta),
+    title = expression("Comparing Models for the 2.5% Quantile for "*beta),
     x = expression("Actual "*beta),
     y = expression("Predicted "*beta),
     color = "Model Type"
   ) +
-  scale_color_manual(values = c("lm_q025_empirical" = "firebrick", "rq_pred" = "forestgreen"),
-                     labels = c("Linear Regression", "Quantile Regression")) +
-  theme_minimal()
+  scale_color_manual(values = c("lm_q025" = "firebrick", "rq_pred" = "forestgreen"),
+                     labels = c("Linear Regression", "Quantile Regression"))
+
+quantile_v_lm_plot
 ```
+
+While it may look like taking the 2.5% quantile of the linear model, and using the quantile regression model produce very similar results, the methods are different. To find the 2.5% quantile of the linear model, we find the 2.5% quantile of the residuals, and add that onto $E(\beta | x)$ predicted by our model. This assumes homoscedaticity, that the residuals are independent of predictors, and we have shifted the line uniformly, without taking into account how residual quantile could change across the data. Our quantile regression method does not have a homoscedaticity assumption, which is more reasonable, especially as the residual plots of our linear model are questionable in upholding the homoscedaticity assumption.
 
 ## Task 2
 
@@ -340,7 +460,7 @@ We will compare the performance of our different approaches outlined in Task 1 w
 
 A 70 year old female (weight: 70kg, height: 160cm) is arrested after being stopped by the police while driving. She provides a blood sample to the police 2 hours after her arrest which gives a reading of Ct = 0.15g/kg (i.e. grams of alcohol per kilogram of blood). The legal limit is x = 0.47g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
 
-We can find the $2.5%$ quantile of the different beta distributions
+We can find the $2.5%$ quantile of the different beta distributions.
 
 ```{r task_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -350,50 +470,46 @@ Ct <- 0.15
 t  <- 2
 
 # empirical quantiles for Beta60 (population approach)
-beta_pop <- quantile(data$beta60, probs = c(0.025, 0.5, 0.975))
-beta_pop
+beta_pop <- quantile(data$beta, probs = c(0.025, 0.5, 0.975))
 
 # C0 values using population quantiles
 C0_pop <- Ct + beta_pop * t
-C0_pop_abs <- Ct + abs(beta_pop) * t   # absolute values since beta60 is negative
 
 # gamma fitted whole population distribution
-gamma_quantiles <- -qgamma(c(0.975, 0.5, 0.025), gamma_shape, gamma_rate)
+gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), gamma_shape, gamma_rate)
 C0_gamma <- Ct + gamma_quantiles * t
-C0_gamma_abs <- Ct + abs(gamma_quantiles) * t
 
 # gamma fitted to males
-m_gamma_quantiles <- -qgamma(c(0.975, 0.5, 0.025), m_gamma_shape, m_gamma_rate)
+m_gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), m_gamma_shape, m_gamma_rate)
 C0_gamma_m <- Ct + m_gamma_quantiles * t
-C0_gamma_abs_m <- Ct + abs(m_gamma_quantiles) * t
 
 # gamma fitted to females
-f_gamma_quantiles <- -qgamma(c(0.975, 0.5, 0.025), f_gamma_shape, f_gamma_rate)
+f_gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), f_gamma_shape, f_gamma_rate)
 C0_gamma_f <- Ct + f_gamma_quantiles * t
-C0_gamma_abs_f <- Ct + abs(f_gamma_quantiles) * t
 
-# predicted Beta60 using regression model
+# predicted Beta using regression model
 lm_pred_vals <- predict(lm_model, newdata = test_person, interval = "prediction", level = 0.95)
-lm_pred_vals
 
-# C0 values using model prediction
-beta_pred <- as.numeric(pred_vals)
-names(beta_pred) <- c("Fitted", "Lower (PI 2.5%)", "Upper (PI 97.5%)")
+# C0 values from regression model
+beta_pred_lm <- as.numeric(lm_pred_vals)
+names(beta_pred_lm) <- c("Fitted", "Lower (PI 2.5%)", "Upper (PI 97.5%)")
+C0_lm <- Ct + beta_pred_lm * t
 
-C0_model <- Ct + beta_pred * t
-C0_model_abs <- Ct + abs(beta_pred) * t
+# predicted beta using quantile regression model
+rq_pred_vals <- predict(rq_model, newdata = test_person, interval = "confidence", level = 0.95)
+C0_rq <- Ct + rq_pred_vals * t
 
 # combine results into one comparison table 
 results_table <- tibble(
-  Approach = c("Population (empirical quantiles)", "Model-based (predicted)", "Gamma Fitted", "Male Gamma Fitted", "Female Gamma Fitted"),
-  Lower_2.5 = c(C0_pop_abs[1], C0_model_abs[2], C0_gamma_abs[1], C0_gamma_abs_m[1], C0_gamma_abs_f[1]),  # note ordering: lwr=2nd col in pred
-  Central   = c(C0_pop_abs[2], C0_model_abs[1], C0_gamma_abs[2], C0_gamma_abs_m[2], C0_gamma_abs_f[2]),
-  Upper_97.5 = c(C0_pop_abs[3], C0_model_abs[3], C0_gamma_abs[3], C0_gamma_abs_m[3], C0_gamma_abs_f[3])
+  Approach = c("Population (empirical quantiles)", "Gamma Fitted", "Male Gamma Fitted", "Female Gamma Fitted", "Linear Regression", "Quantile Regression"),
+  Lower_2.5 = c(C0_pop[1], C0_gamma[1], C0_gamma_m[1], C0_gamma_f[1], C0_lm[2], C0_rq[2]),  # note ordering: lwr=2nd col in pred
+  Central   = c(C0_pop[2], C0_gamma[2], C0_gamma_m[2], C0_gamma_f[2], C0_lm[1], C0_rq[1]),
+  Upper_97.5 = c(C0_pop[3], C0_gamma[3], C0_gamma_m[3], C0_gamma_f[3], C0_lm[3], C0_rq[3])
 )
 
 kable(results_table, digits = 3,
       col.names = c("Approach", "Lower (2.5%)", "Central", "Upper (97.5%)"),
-      caption = "Comparison of estimated C₀ values for the population, model-based and gamma-fitting approaches")
+      caption = "Comparison of estimated C₀ values for the various approaches")
 ```
 
 ## Task 3
@@ -524,7 +640,7 @@ The above findings suggest that $V_d$ seems to differ little across various char
 
 It is also worth considering how the two rates are correlated, as independence is assumed between $\beta$ and $V_d$. Performing a correlation test between the two can help to deduce whether this assumption is upheld. Further, Figure 10 helps to visualise the relationship between $\beta$ and $V_d$.
 
-```{r}
+```{r task_3 correlation, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # Test correlation to investigate independent assumption
 cor.test(data$beta, data$Vd, use = "complete.obs")
@@ -567,7 +683,7 @@ Although the official forensic procedure specifies using the 97.5th percentile f
 
 Assuming independence allows forensic analysts to combine their most extreme values (e.g. highest $\beta$ with highest $V_d$) even though such an extreme combination almost never occurs in practice. This may produce inaccurate $C_t$ estimates, exaggerating how high a person's blood alcohol concentration might have been at the time of interest or significantly underestimating. In statistical terms, the current approach treats the joint distribution of $(\beta, V_d)$ as the product of their marginal distributions, when in reality the joint distribution should account for their negative dependence structure.
 
-```{r}
+```{r joint_dist, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # Visualize the joint distribution
 
@@ -604,7 +720,7 @@ The above plot of the joint distribution between $\beta$ and $V_d$ shows that th
 
 #### **Alternative 1: Empirical Joint Distribution**
 
-```{r}
+```{r emp_joint_dist, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # Test person (from task 2)
 A <- mean(data$A) # Chose this kinda randomly but made the most sense to me 
@@ -641,3 +757,10 @@ The empirical joint $C_t$ distribution represents the upper and lower bounds of 
 As seen from the table above this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
 
 #### **Alternative 2: Linear Regression**
+
+
+# Code Appendix
+
+```{r code=readLines("code.R"), eval=FALSE, echo=TRUE}
+# Do not change this code chunk
+```
