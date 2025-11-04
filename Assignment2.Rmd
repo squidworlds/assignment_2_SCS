@@ -51,40 +51,52 @@ data$beta <- -data$beta60
 
 ## Exploratory Data Analysis
 
+In order to understand and evaluate the performance of the $\beta$ elimination rate, we first examine various plots to visualise how the rate is influenced by certain characteristics. The characteristics of interest are:
+
+-   `weight`: the weight (in kg) of a given individual;
+
+-   `height`: the height (in cm) of a given individual;
+
+-   `age`: the age (in years) of a given individual;
+
+-   `sex`: the sex of a given individual.
+
+These are each plotted against the $\beta$ elimination rate. Intuitively a larger $\beta$ value corresponds to faster elimination of alcohol from the blood stream. Figures 1-4 below explore these relationships.
+
 ```{r eda, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
-# --- beta60 EDA ---
+# --- beta EDA ---
 
-# beta60 vs weight
-weight_plot <- ggplot(data, aes(x=weight, y=beta60, colour = sex)) +
+# beta vs weight
+weight_plot <- ggplot(data, aes(x=weight, y=beta, colour = sex)) +
   geom_point() +
   geom_smooth(method="lm", color="navy") +
   scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  labs(title="Figure 1: Beta60 vs Weight", x="Weight (kg)", y="Beta60 (g/kg/h)")
+  labs(title="Figure 1: β vs Weight", x="Weight (kg)", y="β Elimination Rate (g/kg/h)")
 
-# beta60 vs height
-height_plot <- ggplot(data, aes(x=height, y=beta60, colour = sex)) +
+# beta vs height
+height_plot <- ggplot(data, aes(x=height, y=beta, colour = sex)) +
   geom_point() +
   geom_smooth(method="lm", color="navy") +
   scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  labs(title="Figure 2: Beta60 vs Height", x="Weight (cm)", y="Beta60 (g/kg/h)")
+  labs(title="Figure 2: β vs Height", x="Weight (cm)", y="β Elimination Rate (g/kg/h)")
 
-# beta60 vs age
-age_plot <- ggplot(data, aes(x=age, y=beta60, colour = sex)) +
+# beta vs age
+age_plot <- ggplot(data, aes(x=age, y=beta, colour = sex)) +
   geom_point() +
   geom_smooth(method="lm", color="navy") +
   scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  labs(title="Figure 3: Beta60 vs Age", x="Age (years)", y="Beta60 (g/kg/h)")
+  labs(title="Figure 3: β vs Age", x="Age (years)", y="β Elimination Rate (g/kg/h)")
 
-# beta60 vs gender
+# beta vs gender
 sex_plot <- ggplot(data, aes(x = sex, y = beta60,
                              fill = sex)) +
   geom_violin(alpha = 0.8) +
   geom_boxplot(width = 0.2, color = "navy", alpha = 0.7) +
   scale_fill_manual(values = c("lightblue", "steelblue")) +
   labs(
-    title = "Figure 4: Beta60 vs Gender",
+    title = "Figure 4: β vs Gender",
     x = "Gender",
-    y = "Beta60 (g/kg/h)"
+    y = "β Elimination Rate (g/kg/h)"
   ) +
   guides(fill = "none") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -93,26 +105,44 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
   (age_plot + sex_plot) /
   plot_layout(ncol = 1) +
   plot_annotation(
-    title = "Beta60 vs Characteristics Plots",
+    title = "β vs Characteristics Plots",
     theme = theme(plot.title = element_text(size = 16, face = "bold"))
   )
 ```
 
+From Figures 1-4, we can deduce the following:
+
+-   as weight increases the elimination rate decreases linearly;
+
+-   similarly, as height increases the elimination rate decreases linearly;
+
+-   the majority of age data is scattered between 20-30, however there is a reasonably constant spread of values, suggesting age is less influential on alcohol elimination;
+
+-   there is a clear difference in elimination rate between genders, with males typically obtaining higher values.
+
+To further enhance our investigation into the effect each of these characteristics has on the elimination rate, we can view the following correlation plot, which calculates the pairwise correlations between our variables.
+
+\# quantiles of beta
+
+#quantiles \<- quantile(data\$beta, probs = c(0.025, 0.5, 0.975))
+
+#print(quantiles)
+
 ```{r correlations, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 library(dplyr)
 
-# pairwise correlations between characteristics and beta60
+# pairwise correlations between characteristics and beta
 corr <- data %>%
-  dplyr::select(beta60, weight, age, height) %>%
+  dplyr::select(beta, weight, age, height) %>%
   cor(use = "pairwise.complete.obs") %>%
   round(3)
 
 print(corr)
-
-# quantiles of beta60
-quantiles <- quantile(data$beta60, probs = c(0.025, 0.5, 0.975))
-print(quantiles)
 ```
+
+From this output, we can see that weight and height have significant correlations with the $\beta$ elimination rate, with respective correlations of -0.356 and -0.410. This suggests that these characteristics play a crucial role in determining the rate at which alcohol is eliminated from the blood stream. As expected, there is a low correlation between age and elimination rate.
+
+Due to the clear relationships between $\beta$ and characteristics of the tested individuals, it is worth considering approaches in which these factors are incorporated to accurately predict the rate at which alcohol is eliminated from the blood stream.
 
 ## Modelling Beta
 
@@ -205,7 +235,7 @@ gamma_rate <- gamma_fit$estimate[[2]]
 q025 <- -qgamma(0.975, gamma_shape, gamma_rate)
 ```
 
-The 2.5% quantile in this distribution of Beta_60 is -0.2529983. 
+The 2.5% quantile in this distribution of Beta_60 is -0.2529983.
 
 Considering that Sex is a factor variable, we can find the distributions of beta_60 dependent on whether the suspect is male of female.
 
@@ -230,6 +260,7 @@ f_q025
 ```
 
 ### Linear Model Method
+
 ```{r modelling_beta, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 # --- linear modelling beta 60 attempt ---
 
@@ -305,15 +336,11 @@ ggplot(plot_data, aes(x = beta60, y = predicted_beta, color = model)) +
 
 ## Task 2
 
-We will compare the performance of our different approaches outlined in Task 1 with the following case study. 
+We will compare the performance of our different approaches outlined in Task 1 with the following case study.
 
-A 70 year old female (weight: 70kg, height: 160cm) is arrested after being stopped by the police while
-driving. She provides a blood sample to the police 2 hours after her arrest which gives a reading of
-Ct = 0.15g/kg (i.e. grams of alcohol per kilogram of blood). The legal limit is x = 0.47g/kg. The
-police wish to charge her with the criminal offence of driving while over the legal limit.
+A 70 year old female (weight: 70kg, height: 160cm) is arrested after being stopped by the police while driving. She provides a blood sample to the police 2 hours after her arrest which gives a reading of Ct = 0.15g/kg (i.e. grams of alcohol per kilogram of blood). The legal limit is x = 0.47g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
 
 We can find the $2.5%$ quantile of the different beta distributions
-
 
 ```{r task_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -371,25 +398,7 @@ kable(results_table, digits = 3,
 
 ## Task 3
 
-If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). Widmark's equation can be written as
-
-$$
-C_t = \frac{A}{\text{Weight} \times V_d} - \beta t,
-$$
-
-where $A$ is the observed does of alcohol consumed, $\text{Weight}$ is the weight of the individual, and $V_d$ is a parameter known as the volume of distribution. Rearranging this equation we find
-
-$$
-C_0 = C_t +\beta_t = \frac{A}{\text{Weight} \times V_d},
-$$
-
-which in turn implies
-
-$$
-V_d = \frac{A}{\text{Weight} \times C_0}.
-$$
-
-Hence, given we are provided the data for $A$, $\text{Weight}$, and $C_0$, we can calculate $V_d$ using the above equation.
+### Finding $V_d$
 
 If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). Widmark's equation can be written as
 
@@ -410,6 +419,32 @@ V_d = \frac{A}{\text{Weight} \times C_0}.
 $$
 
 Hence, given we are provided the data for $A$, $\text{Weight}$, and $C_0$, we can calculate $V_d$ using the above equation.
+
+If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). Widmark's equation can be written as
+
+$$
+C_t = \frac{A}{\text{Weight} \times V_d} - \beta t,
+$$
+
+where $A$ is the observed does of alcohol consumed, $\text{Weight}$ is the weight of the individual, and $V_d$ is a parameter known as the volume of distribution. Rearranging this equation we find
+
+$$
+C_0 = C_t +\beta_t = \frac{A}{\text{Weight} \times V_d},
+$$
+
+which in turn implies
+
+$$
+V_d = \frac{A}{\text{Weight} \times C_0}.
+$$
+
+Hence, given we are provided the data for $A$, $\text{Weight}$, and $C_0$, we can calculate $V_d$ using the above equation.
+
+### Exploratory Data Analysis
+
+Similar to our approach in analysing the effectiveness of the $\beta$ elimination rate, we can investigate the relationships between $V_d$ and characteristics of individuals (weight, height, age, and sex). It is also worth investigating the distribution of $V_d$ values across our sample.
+
+Figures 5-9 help us visualise these relationships.
 
 ```{r task_3, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -419,13 +454,13 @@ data$Co <- data$`Co (g/Kg)`
 data$Vd <- data$A/(data$Co *data$weight)
 
 # view summary and quantiles of Vd
-summary(data$Vd)
-quantile(data$Vd, probs = c(0.025, 0.5, 0.975))
+#summary(data$Vd)
+#quantile(data$Vd, probs = c(0.025, 0.5, 0.975))
 
 # histogram of Vd
 ggplot(data, aes(x = Vd)) +
   geom_histogram(bins = 20, colour = "navy", fill = "steelblue") +
-  labs(title = "Distribution of Volume of Distribution (Vd)",
+  labs(title = "Figure 5: Distribution of Volume of Distribution (Vd)",
        x = "Vd (L/kg)", y = "Count")
 
 # Vd vs weight
@@ -433,21 +468,21 @@ weight_plot2 <- ggplot(data, aes(x = weight, y = Vd, colour = sex)) +
   geom_point() +
   geom_smooth(method = "lm", colour = "navy") +
   scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  labs(title = "Figure 5: Vd vs Weight", x = "Weight (kg)", y = "Vd (L/kg)")
+  labs(title = "Figure 6: Vd vs Weight", x = "Weight (kg)", y = "Vd (L/kg)")
 
 # Vd vs height
 height_plot2 <- ggplot(data, aes(x = height, y = Vd, colour = sex)) +
   geom_point() +
   scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
   geom_smooth(method = "lm", colour = "navy") +
-  labs(title = "Figure 6: Vd vs Height", x = "Height (cm)", y = "Vd (L/kg)")
+  labs(title = "Figure 7: Vd vs Height", x = "Height (cm)", y = "Vd (L/kg)")
 
 # Vd vs age
 age_plot2 <- ggplot(data, aes(x = age, y = Vd, colour = sex)) +
   geom_point() +
   scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
   geom_smooth(method = "lm", colour = "navy") +
-  labs(title = "Figure 7: Vd vs Age", x = "Age (years)", y = "Vd (L/kg)")
+  labs(title = "Figure 8: Vd vs Age", x = "Age (years)", y = "Vd (L/kg)")
 
 # Vd vs gender
 sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
@@ -456,7 +491,7 @@ sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
   geom_boxplot(width = 0.2, color = "navy", alpha = 0.7) +
   scale_fill_manual(values = c("lightblue", "steelblue")) +
   labs(
-    title = "Figure 8: Vd vs Gender",
+    title = "Figure 9: Vd vs Gender",
     x = "Gender",
     y = "Vd (L/kg)"
   ) +
@@ -473,6 +508,21 @@ sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
 
 ```
 
+From Figure 5, we can see that the majority of $V_d$ values lie around 0.65, in a roughly normally distributed pattern. There appears to be one particular outlier, with a $V_d$ value of around 1.2, which may be worth investigating further.
+
+Figures 6-9 highlight the following relationships:
+
+-   $V_d$ shows a very slight negative trend as weight increases;
+
+-   $V_d$ appears constant across the range of heights;
+
+-   $V_d$ appears to decrease with age, although again the majority of the data lies between ages of 20-30, so general conclusions are hard to draw from the sample;
+
+-   $V_d$ appears constant across both genders.
+
+The above findings suggest that $V_d$ seems to differ little across various characteristics of the individual. This suggests $V_d$ is a more generalised approach compared to the $\beta$ elimination rate.
+
+It is also worth considering how the two rates are correlated, as independence is assumed between $\beta$ and $V_d$. Performing a correlation test between the two can help to deduce whether this assumption is upheld. Further, Figure 10 helps to visualise the relationship between $\beta$ and $V_d$.
 
 ```{r}
 
@@ -481,16 +531,16 @@ cor.test(data$beta, data$Vd, use = "complete.obs")
 
 
 # View quantiles of each coefficient for comparison
-beta_range <- quantile(data$beta60, probs = c(0.025, 0.975))
+beta_range <- quantile(data$beta, probs = c(0.025, 0.975))
 Vd_range   <- quantile(data$Vd, probs = c(0.025, 0.975))
 
-
 # Scatter plot between beta and V_d
-ggplot(data, aes(x = beta, y = Vd)) +
-  geom_point(aes(color = sex), alpha = 0.6) +
+ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
+  geom_point() +
+  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
   geom_smooth(method = "lm", color = "navy") +
   labs(
-    title = "Relationship between β and Vd",
+    title = "Figure 10: Relationship between β and Vd",
     subtitle = paste("Correlation =", round(cor(data$beta, data$Vd, use = "complete.obs"), 3)),
     x = "β elimination rate (g/kg/h)",
     y = "Vd (L/kg)"
@@ -498,22 +548,24 @@ ggplot(data, aes(x = beta, y = Vd)) +
 
 ```
 
+From the correlation test, we find that there is an observed correlation of -0.404, and the null hypothesis that the true correlation is equal to zero, i.e. the two measures are independent, can be confidently rejected as there is a corresponding p-value of $3.122\times10^{-5}$.
+
+Figure 10 further highlights this clear relationship between the two measures, and hence the independence assumption appears to be violated.
 
 #### **Advantages of Current Method**
 
-- Simplicity: Easy to implement and explain in court
-- Conservative: Using the 97.5th percentiles provides a "benefit of the doubt" to defendants
-- Standardised: Same approach across all cases ensures consistency
-- Transparent: Clear, reproducible methodology
-
+-   Simplicity: Easy to implement and explain in court
+-   Conservative: Using the 97.5th percentiles provides a "benefit of the doubt" to defendants
+-   Standardised: Same approach across all cases ensures consistency
+-   Transparent: Clear, reproducible methodology
 
 #### **Limitations of Current Method**
 
-The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, a Pearson's product-moment correlation analysis reveals a statistically significant negative correlation between these two parameters (correlation coefficient = -0.4036489, p-value = 3.122e-05 < 0.05). This finding directly contradicts the independence assumption underlying the current approach.
+The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, a Pearson's product-moment correlation analysis reveals a statistically significant negative correlation between these two parameters (correlation coefficient = -0.4036489, p-value = 3.122e-05 \< 0.05). This finding directly contradicts the independence assumption underlying the current approach.
 
 Although the official forensic procedure specifies using the 97.5th percentile for both $\beta$ and $V_d$, this convention is based on policy rather than mathematical reasoning. Forensic laboratories apply the same "upper percentile rule" across all parameters to maintain consistency and to err on the side of caution, as using higher parameter values for $\beta$ and $V_d$ generally produces lower blood alcohol estimates. Mathematically Widmark's equation shows that $C_t$ decreases as $\beta$ and $V_d$ both increase, thus the maximum possible value of $C_t$ would occur for low $\beta$ and low $V_d$ values (their 2.5th percentiles). Regardless of which tail is used, the critical statistical issue with the current method is that it assumes that $\beta$ and $V_d$ are independent, when our analysis shows that $\beta$ and $V_d$ have a significant negative correlation.
 
-Assuming independence allows forensic analysts to combine their most extreme values (e.g. highest $\beta$ with highest $V_d$) even though such an extreme combination almost never occurs in practice. This may produce inaccurate $C_t$ estimates, exaggerating how high a person's blood alcohol concentration might have been at the time of interest or significantly underestimating. In statistical terms, the current approach treats the joint distribution of $(\beta, V_d)$ as the product of their marginal distributions, when in reality the joint distribution should account for their negative dependence structure. 
+Assuming independence allows forensic analysts to combine their most extreme values (e.g. highest $\beta$ with highest $V_d$) even though such an extreme combination almost never occurs in practice. This may produce inaccurate $C_t$ estimates, exaggerating how high a person's blood alcohol concentration might have been at the time of interest or significantly underestimating. In statistical terms, the current approach treats the joint distribution of $(\beta, V_d)$ as the product of their marginal distributions, when in reality the joint distribution should account for their negative dependence structure.
 
 ```{r}
 
@@ -542,16 +594,15 @@ ggplot(data, aes(x = beta, y = Vd)) +
 
 ```
 
-The above plot of the joint distribution between $\beta$ and $V_d$ shows that there are no points in the top-right corner where both parameters are at their 97.5th marginal quantile simultaneously. 
+The above plot of the joint distribution between $\beta$ and $V_d$ shows that there are no points in the top-right corner where both parameters are at their 97.5th marginal quantile simultaneously.
 
 #### **Potential Alternative Methods**
 
-1. Use the empirical joint distribution of $(\beta, V_d)$ from the data
-2. Model the correlation structure explicitly (e.g. through the use of a linear regression model)
-3. Bayesian approach with prior distributions for $(\beta, V_d)$ specified and incorporated in the calculation (use eye-witness testimony as your "data" in order to calculate the posterior distribution)
+1.  Use the empirical joint distribution of $(\beta, V_d)$ from the data
+2.  Model the correlation structure explicitly (e.g. through the use of a linear regression model)
+3.  Bayesian approach with prior distributions for $(\beta, V_d)$ specified and incorporated in the calculation (use eye-witness testimony as your "data" in order to calculate the posterior distribution)
 
 #### **Alternative 1: Empirical Joint Distribution**
-
 
 ```{r}
 
@@ -585,19 +636,8 @@ kable(results_compare, align = "lccc",
 
 ```
 
-
 The empirical joint $C_t$ distribution represents the upper and lower bounds of plausible blood alcohol concentrations for an individual with weight 70kg, who consumed the mean grams of alcohol from the sample and was tested 2 hours later.
 
 As seen from the table above this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
 
-
 #### **Alternative 2: Linear Regression**
-
-
-
-
-
-
-
-
-
