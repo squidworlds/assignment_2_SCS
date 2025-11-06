@@ -232,33 +232,33 @@ ppcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
 
 #### Normal Distribution
 
-- `Empirical and Theoretical Densities`: The theoretical peak value is skewed compared to the empirical peak, and has lower density.
+-   `Empirical and Theoretical Densities`: The theoretical peak value is skewed compared to the empirical peak, and has lower density.
 
-- `Q-Q plot`: Lack-of-fit observed at distribution tails. The left tail is heavy while the right tail is light.
+-   `Q-Q plot`: Lack-of-fit observed at distribution tails. The left tail is heavy while the right tail is light.
 
-- `Empirical and Theoretical CDFs`: Poor fit at central values of the distribution.
+-   `Empirical and Theoretical CDFs`: Poor fit at central values of the distribution.
 
-- `P-P plot`: Lack-of-fit at the distribution centre, as the central values deviate from the linear relationship. 
+-   `P-P plot`: Lack-of-fit at the distribution centre, as the central values deviate from the linear relationship.
 
 #### Beta Distribution
 
-- `Empirical and Theoretical Densities`: Improved fit of peak is observed, while still not completely aligned.
+-   `Empirical and Theoretical Densities`: Improved fit of peak is observed, while still not completely aligned.
 
-- `Q-Q plot`: Points are randomly distributed above and below the general linear trend, with outliers at the lower tail.
+-   `Q-Q plot`: Points are randomly distributed above and below the general linear trend, with outliers at the lower tail.
 
-- `Empirical and Theoretical CDFs`: Improved fit at distribution centre compared to normal.
+-   `Empirical and Theoretical CDFs`: Improved fit at distribution centre compared to normal.
 
-- `P-P plot`: Improved fit at distribution centre compared to normal.
+-   `P-P plot`: Improved fit at distribution centre compared to normal.
 
 #### Gamma Distribution
 
-- `Empirical and Theoretical Densities`: Best fit of peak of the analysed distributions.
+-   `Empirical and Theoretical Densities`: Best fit of peak of the analysed distributions.
 
-- `Q-Q plot`: Points are randomly distributed above and below the general linear trend across all quantiles.
+-   `Q-Q plot`: Points are randomly distributed above and below the general linear trend across all quantiles.
 
-- `Empirical and Theoretical CDFs`: Best fit of theoretical distribution to data.
+-   `Empirical and Theoretical CDFs`: Best fit of theoretical distribution to data.
 
-- `P-P plot`: Majority of points lie on fitted line.
+-   `P-P plot`: Majority of points lie on fitted line.
 
 This is an improved fit compared to the normal distribution, as the empirical and theoretical densities are more aligned, and ... A similar distribution is the gamma distribution.
 
@@ -268,8 +268,7 @@ gamma_rate <- gamma_fit$estimate[[2]]
 q025 <- qgamma(0.025, gamma_shape, gamma_rate)
 ```
 
-
-The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847. 
+The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847.
 
 Considering that Sex is a factor variable, we can find the distributions of beta_60 dependent on whether the suspect is male of female.
 
@@ -372,13 +371,13 @@ par(mfrow = c(2,2))
 plot(lm_model)
 ```
 
-- `Residual vs Fitted`: There is a change of variance with mean, so the constant variance assumption is slightly violated. Unfortunately there is little data points to establish if this is an important violation.
+-   `Residual vs Fitted`: There is a change of variance with mean, so the constant variance assumption is slightly violated. Unfortunately there is little data points to establish if this is an important violation.
 
-- `Q-Q Residuals`: The ordered standardised residuals are plotted against quantiles of a standard normal. Lack-of-fit observed at distribution tails. The left tail is heavy while the right tail is light.
+-   `Q-Q Residuals`: The ordered standardised residuals are plotted against quantiles of a standard normal. Lack-of-fit observed at distribution tails. The left tail is heavy while the right tail is light.
 
-- `Scale-Location`: We have random variation around the mean, so there is no violation of the constant variation assumption.
+-   `Scale-Location`: We have random variation around the mean, so there is no violation of the constant variation assumption.
 
-- `Residuals vs Leverage`: This plot gives us Cook’s distance, which measures the change in all model fitted values on omission of the data point in question. From the plot we can see there are no outliers, so there aren't any highly influential points in our data.
+-   `Residuals vs Leverage`: This plot gives us Cook’s distance, which measures the change in all model fitted values on omission of the data point in question. From the plot we can see there are no outliers, so there aren't any highly influential points in our data.
 
 To try to resolve these violations of the assumptions on residuals, we can create an alternative linear model. Given that there is a quadratic shape in the `Residuals vs Fitted` graph, we create the following linear model.
 
@@ -516,27 +515,7 @@ kable(results_table, digits = 3,
 
 ### Finding $V_d$
 
-If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). Widmark's equation can be written as
-
-$$
-C_t = \frac{A}{\text{Weight} \times V_d} - \beta t,
-$$
-
-where $A$ is the observed does of alcohol consumed, $\text{Weight}$ is the weight of the individual, and $V_d$ is a parameter known as the volume of distribution. Rearranging this equation we find
-
-$$
-C_0 = C_t +\beta_t = \frac{A}{\text{Weight} \times V_d},
-$$
-
-which in turn implies
-
-$$
-V_d = \frac{A}{\text{Weight} \times C_0}.
-$$
-
-Hence, given we are provided the data for $A$, $\text{Weight}$, and $C_0$, we can calculate $V_d$ using the above equation.
-
-If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). Widmark's equation can be written as
+If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). The validity of this estimate is dependent on the reliability of the eyewitness' testimony, however this analysis can be combined with other evidence to support a case. Widmark's equation can be written as
 
 $$
 C_t = \frac{A}{\text{Weight} \times V_d} - \beta t,
@@ -757,7 +736,6 @@ The empirical joint $C_t$ distribution represents the upper and lower bounds of 
 As seen from the table above this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
 
 #### **Alternative 2: Linear Regression**
-
 
 # Code Appendix
 
