@@ -52,11 +52,19 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
   guides(fill = "none") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# pairwise correlations between characteristics and beta
-corr <- data %>%
+# Compute correlation and p-value between beta and each characteristic.
+corr_table <- data %>%
   dplyr::select(beta, weight, age, height) %>%
-  cor(use = "pairwise.complete.obs") %>%
-  round(3)
+  pivot_longer(cols = c(weight, age, height), names_to = "Characteristic", values_to = "Value") %>%
+  group_by(Characteristic) %>%
+  summarise(
+    Correlation = cor(beta, Value, use = "pairwise.complete.obs"),
+    P_value = cor.test(beta, Value)$p.value
+  ) %>%
+  mutate(
+    Correlation = round(Correlation, 3),
+    P_value = signif(P_value, 3)
+  )
 
 #%%%%%%%%%%%%%%%%%%%% BETA DISTRIBUTION TESTING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

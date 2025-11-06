@@ -26,18 +26,20 @@ suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(fitdistrplus))
 suppressPackageStartupMessages(library(readxl))
 suppressPackageStartupMessages(library(quantreg))
+suppressPackageStartupMessages(library(purrr))
+suppressPackageStartupMessages(library(broom))
 
 theme_set(
   theme_bw() +
     theme(
-      plot.title = element_text(size = 20, hjust = 0.5),
-      axis.title.x = element_text(size = 16),
-      axis.title.y = element_text(size = 16),
-      axis.text = element_text(size = 13),
-      legend.title = element_text(size = 14),
-      legend.text = element_text(size = 12),
-      plot.caption = element_text(size = 11, hjust = 1),
-      plot.subtitle = element_text(size = 14, face = "italic")
+      plot.title = element_text(size = 24, hjust = 0.5),
+      axis.title.x = element_text(size = 20),
+      axis.title.y = element_text(size = 20),
+      axis.text = element_text(size = 20),
+      legend.title = element_text(size = 20),
+      legend.text = element_text(size = 20),
+      plot.caption = element_text(size = 20, hjust = 1),
+      plot.subtitle = element_text(size = 20, face = "italic")
     )
 )
 ```
@@ -75,7 +77,7 @@ In order to understand and evaluate the performance of the $\beta$ elimination r
 
 These are each plotted against the $\beta$ elimination rate. Intuitively a larger $\beta$ value corresponds to faster elimination of alcohol from the blood stream. Figures 1-4 below explore these relationships.
 
-```{r eda, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+```{r eda, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 # --- beta EDA ---
 
 # beta vs weight
@@ -90,7 +92,7 @@ height_plot <- ggplot(data, aes(x=height, y=beta, colour = sex)) +
   geom_point() +
   geom_smooth(method="lm", color="navy") +
   scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  labs(title="Figure 2: β vs Height", x="Weight (cm)", y="β Elimination Rate (g/kg/h)")
+  labs(title="Figure 2: β vs Height", x="Height (cm)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs age
 age_plot <- ggplot(data, aes(x=age, y=beta, colour = sex)) +
@@ -110,15 +112,14 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
     x = "Gender",
     y = "β Elimination Rate (g/kg/h)"
   ) +
-  guides(fill = "none") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  guides(fill = "none")
 
 (weight_plot + height_plot) /
   (age_plot + sex_plot) /
   plot_layout(ncol = 1) +
   plot_annotation(
     title = "β vs Characteristics Plots",
-    theme = theme(plot.title = element_text(size = 16, face = "bold"))
+    theme = theme(plot.title = element_text(size = 27, face = "bold"))
   )
 ```
 
@@ -132,22 +133,33 @@ From Figures 1-4, we can deduce the following:
 
 -   there is a clear difference in elimination rate between genders, with males typically obtaining higher values.
 
-To further enhance our investigation into the effect each of these characteristics has on the elimination rate, we can view the following correlation plot, which calculates the pairwise correlations between our variables.
+To further enhance our investigation into the effect each of these characteristics has on the elimination rate, the following table evaluates the significance of correlation between each characteristic and $\beta$.
 
 ```{r correlations, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
-library(dplyr)
 
-# pairwise correlations between characteristics and beta
-corr <- data %>%
+# Compute correlation and p-value between beta and each characteristic.
+corr_table <- data %>%
   dplyr::select(beta, weight, age, height) %>%
-  cor(use = "pairwise.complete.obs") %>%
-  round(3)
+  pivot_longer(cols = c(weight, age, height), names_to = "Characteristic", values_to = "Value") %>%
+  group_by(Characteristic) %>%
+  summarise(
+    Correlation = cor(beta, Value, use = "pairwise.complete.obs"),
+    P_value = cor.test(beta, Value)$p.value
+  ) %>%
+  mutate(
+    Correlation = round(Correlation, 3),
+    P_value = signif(P_value)
+  )
 
-kable(corr, digits = 3,
-      caption = "Pairwise Correlations Between Characteristics and Beta")
+# Display as a formatted table.
+kable(
+  corr_table,
+  digits = 5,
+  caption = "Correlations Between Beta and Each Characteristic (with P-values)"
+)
 ```
 
-From this output, we can see that weight and height have significant correlations with the $\beta$ elimination rate, with respective correlations of -0.356 and -0.410. This suggests that these characteristics play a crucial role in determining the rate at which alcohol is eliminated from the blood stream. As expected, there is a low correlation between age and elimination rate.
+From this output, we can see that weight and height have significant correlations with the $\beta$ elimination rate, with respective correlations of -0.356 and -0.410. This suggests that these characteristics play a crucial role in determining the rate at which alcohol is eliminated from the blood stream. Further, the correlation test returned a p-value below 0.05 for both of these characteristics, indicating that there is evidence to reject the null hypothesis that there is no correlation between these characteristics and $\beta$. As expected, there is a low correlation between age and elimination rate, and a large p-value of 0.68772 further validates this. Hence, we can deduce that age plays little role in the elimination rate of alcohol from the blood stream.
 
 Due to the clear relationships between $\beta$ and characteristics of the tested individuals, it is worth considering approaches in which these factors are incorporated to accurately predict the rate at which alcohol is eliminated from the blood stream.
 
@@ -272,7 +284,7 @@ The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847.
 
 Considering that Sex is a factor variable, we can find the distributions of beta_60 dependent on whether the suspect is male of female.
 
-```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
 m_data <- data %>% filter(Sex == "male")
 m_gamma_fit <- fitdist(m_data$beta, distr = "gamma", method = "mle")
@@ -541,7 +553,7 @@ Similar to our approach in analysing the effectiveness of the $\beta$ eliminatio
 
 Figures 5-9 help us visualise these relationships.
 
-```{r task_3, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+```{r task_3, echo = FALSE, message = FALSE, warning=FALSE, fig.width=15, fig.height=15, fig.align='center'}
 
 # define A, Co, Vd
 data$A <- data$`Amount of Alcohol Consumed (g)`
@@ -557,7 +569,9 @@ ggplot(data, aes(x = Vd)) +
   geom_histogram(bins = 20, colour = "navy", fill = "steelblue") +
   labs(title = "Figure 5: Distribution of Volume of Distribution (Vd)",
        x = "Vd (L/kg)", y = "Count")
+```
 
+```{r task_3_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 # Vd vs weight
 weight_plot2 <- ggplot(data, aes(x = weight, y = Vd, colour = sex)) +
   geom_point() +
@@ -590,17 +604,15 @@ sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
     x = "Gender",
     y = "Vd (L/kg)"
   ) +
-  guides(fill = "none") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  guides(fill = "none")
 
 (weight_plot2 + height_plot2) /
   (age_plot2 + sex_plot2) /
   plot_layout(ncol = 1) +
   plot_annotation(
     title = "Vd Characteristics Plots",
-    theme = theme(plot.title = element_text(size = 16, face = "bold"))
+    theme = theme(plot.title = element_text(size = 27, face = "bold"))
   )
-
 ```
 
 From Figure 5, we can see that the majority of $V_d$ values lie around 0.65, in a roughly normally distributed pattern. There appears to be one particular outlier, with a $V_d$ value of around 1.2, which may be worth investigating further.
