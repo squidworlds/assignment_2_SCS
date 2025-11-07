@@ -465,6 +465,173 @@ quantile_v_lm_plot
 
 While it may look like taking the 2.5% quantile of the linear model, and using the quantile regression model produce very similar results, the methods are different. To find the 2.5% quantile of the linear model, we find the 2.5% quantile of the residuals, and add that onto $E(\beta | x)$ predicted by our model. This assumes homoscedaticity, that the residuals are independent of predictors, and we have shifted the line uniformly, without taking into account how residual quantile could change across the data. Our quantile regression method does not have a homoscedaticity assumption, which is more reasonable, especially as the residual plots of our linear model are questionable in upholding the homoscedaticity assumption.
 
+### **Recommended Reporting Framework for Police Scotland**
+
+The current forensic approach uses a single threshold for the elimination rate, specifically the 2.5th percentile of the empirical or fitted distribution of $\beta$. This value is substituted into
+
+$$
+C_0 = C_t + \beta t
+$$
+to obtain a point estimate of the blood alcohol concentration at the time of driving. A binary decision is then made as to whether this estimated $C_0$ exceeds the legal limit. While this approach is simple, it disregards uncertainty in $\beta$ and in the model used to derive it. Consequently, it may give a misleading impression of precision in borderline cases.
+
+To provide a more transparent and scientifically defensible analysis, we propose that Police Scotland adopt a probabilistic reporting framework, which explicitly quantifies the uncertainty in $\beta$ and its effect on the estimated blood alcohol concentration $C_0$. 
+
+#### **1. Probabilistic (Simulation-Based) Estimation** 
+
+Given that we have found $\beta$ to follow a Gamma distribution,
+
+$$
+\beta \sim Gamma(\hat{\alpha}, \hat{\lambda})
+$$
+
+where $\hat{\alpha} = 31.95$ and $\hat{\lambda} = 173.71$, we can propagate this uncertainty to obtain the distribution of $C_0 = C_t + \beta t$.
+
+A simple Monte Carlo procedure can be used to estimate the probability that the initial true blood alcohol concentration was above the legal limit $x = 0.47 g/kg$:
+
+$$
+\begin{eqnarray}
+\mathbb{P}(C_0 > x) &=& \mathbb{P}(C_t + \beta t > x) \\
+&=& \mathbb{P}\left(\beta > \frac{(x - C_t)}{t}\right)
+\end{eqnarray}
+$$
+
+This could also be computed directly from the fitted Gamma distribution:
+
+$$
+\mathbb{P}(C_0 > x) = 1 - F_{Gamma}\left(\frac{(x - C_t)}{t} ; \hat{\alpha}, \hat{\lambda}\right)
+$$
+
+where $F_{Gamma}$ is the cumulative distribution function of the Gamma distribution. 
+
+This probability offers a more nuances summary than a simple 'above/below limit' approach. For example, if $\mathbb{P}(C_0 > x) = 0.78$, the expert witness could state that there is a 78% probability that the suspect's blood alcohol concentration exceeded the legal limit at the time of driving.
+
+#### **2. Interval Based Presentation** 
+
+Alongside the probability, a prediction interval for $C_0$ could be presented:
+
+$$
+C_0 \in [C_t + q_{0.025}(\beta) t, C_t + q_{0.975}(\beta) t]
+$$
+
+This provides a range of plausible values for $C_0$ given the uncertainty in $\beta$. For example, using $C_t = 0.15 g/kg$ and $t = 2$ hours, a 95% prediction/credible interval for the blood alcohol concentration at the time of driving, $C_0$, would be (0.4, 0.66) g/kg.
+
+```{r}
+# Case Study Parameters (from task 2)
+Ct <- 0.15         # measured concentration (g/kg)
+t  <- 2            # time since arrest (hours)
+x  <- 0.47         # legal limit (g/kg)
+
+# Fitted Gamma parameters for beta
+gamma_shape <- 31.9538
+gamma_rate  <- 173.7079
+
+# 1. Compute 2.5th and 97.5th percentiles of beta
+beta_q025 <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
+beta_q975 <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
+
+# 2. Compute 95% interval for C0
+C0_lower <- Ct + beta_q025 * t
+C0_upper <- Ct + beta_q975 * t
+C0_interval <- c(C0_lower, C0_upper)
+
+# 3. Compute probability that true C0 exceeded legal limit
+#    P(C0 > x) = P(beta > (x - Ct)/t)
+beta_threshold <- (x - Ct) / t
+p_over_limit <- 1 - pgamma(beta_threshold, shape = gamma_shape, rate = gamma_rate)
+
+# 4. Monte Carlo simulation (for illustration if can't use analytical method)
+set.seed(123)
+n_sim <- 1000
+beta_samples <- rgamma(n_sim, shape = gamma_shape, rate = gamma_rate)
+C0_samples <- Ct + beta_samples * t
+
+# Estimated probability from simulation
+p_over_limit_sim <- mean(C0_samples > x)
+
+# Summaries
+C0_mean <- mean(C0_samples)
+C0_sd   <- sd(C0_samples)
+
+# Output neatly
+cat("95% credible interval for C0: (", round(C0_lower,3), ",", round(C0_upper,3), ")\n")
+cat("Probability(C0 > limit) [analytical] =", round(p_over_limit,3), "\n")
+cat("Probability(C0 > limit) [simulation] =", round(p_over_limit_sim,3), "\n")
+cat("Mean C0 =", round(C0_mean,3), ", SD =", round(C0_sd,3), "\n")
+
+```
+
+For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arrest and the fitted Gamma model for the elimination rate, the estimated 95% prediction/credible interval for the blood alcohol concentration at the time of driving is $C_0 \in (0.40,0.66)g/kg$. The probability that the true $C_0$ exceeded the legal limit of 0.47 g/kg is approximately 76%.
+
+*Not sure whether to put this bit in task 2 analysis!:*
+
+"Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently."
+
+#### **3. Graphical 'Uncertainty Band' Presentation** 
+
+Plot $C_0 = C_t + \beta t$ versus $\beta$, and overlay:
+
+- the estimated Gamma PDF for \beta;
+- a vertical line at the legal limit;
+- shading for the proportion of the $\beta$ distribution that yields $C_0 > x$
+
+This visually communicates both uncertainty in $\beta$, and how close the case is to the threshold.
+
+```{r}
+
+# Parameters
+gamma_shape <- 31.9538
+gamma_rate <- 173.7079
+
+# Compute 2.5th and 97.5th percentiles of beta
+beta_q025 <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
+beta_q975 <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
+
+# Current concentration
+C_t <- 0.15
+t <- 2
+
+# Legal limit for C0
+C_legal <- 0.47        
+
+# Derived beta that would reach legal limit
+beta_limit <- (C_legal - C_t)/t
+
+# Define range of beta
+# beta <- seq(0, 0.5, length.out = 1000)
+beta <- seq(beta_q025, beta_q975, length.out = 1000)
+
+# Calculate C0
+C0 <- C_t + beta * t
+
+# Gamma PDF for beta
+pdf_beta <- dgamma(beta, shape = gamma_shape, rate = gamma_rate)
+
+# Plot C0 vs beta
+plot(beta, C0, type = "l", lwd = 2, col = "blue",
+     xlab = expression(beta), ylab = expression(C[0]),
+     main = expression(paste(C[0], " vs ", beta)))
+
+# Add vertical line at derived beta_limit
+abline(v = beta_limit, col = "darkgreen", lwd = 2, lty = 2)
+
+# Shading for beta values that make C0 > C_legal
+beta_shade <- beta[beta > beta_limit]
+C0_shade <- C0[beta > beta_limit]
+
+polygon(c(beta_shade, rev(beta_shade)),
+        c(rep(min(C0), length(beta_shade)), rev(C0_shade)),
+        col = rgb(1, 0, 0, 0.3), border = NA)
+
+# Add Gamma PDF on secondary y-axis
+par(new = TRUE)
+plot(beta, pdf_beta, type = "l", lwd = 2, col = "red",
+     axes = FALSE, xlab = "", ylab = "")
+axis(side = 4, col = "red", col.axis = "red")
+mtext("Density", side = 4, line = 3, col = "red")
+
+```
+
+
 ## Task 2
 
 We will compare the performance of our different approaches outlined in Task 1 with the following case study.
