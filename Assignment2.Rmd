@@ -174,7 +174,7 @@ An issue with creating a distribution from the $\beta$ elimination rate values g
 density_plot <- ggplot(data, aes(x = beta)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005,
-                 fill = "skyblue",
+                 fill = "steelblue",
                  alpha = 0.55) +
   geom_density(color = "navy", 
                size = 1) +
@@ -786,7 +786,7 @@ data$Vd <- data$A/(data$Co *data$weight)
 
 # histogram of Vd
 ggplot(data, aes(x = Vd)) +
-  geom_histogram(bins = 20, colour = "navy", fill = "skyblue") +
+  geom_histogram(bins = 20, colour = "navy", fill = "steelblue") +
   labs(title = "Figure 5: Histogram of Volume of Distribution (Vd)",
        x = "Vd (L/kg)", y = "Count")
 ```
