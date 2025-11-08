@@ -61,6 +61,16 @@ data$beta <- -data$beta60
 
 # Executive Summary
 
+In this statistical report, we investigate the techniques used by the forensic services at Police Scotland on blood alcohol computations in criminal cases associated with drink driving. Since breath tests used at the scene of a crime are not accurate enough for prosecution, back calculation techniques must be implemented once accurate blood alcohol data has been recorded to estimate whether the suspect was over the limit at the time of the crime.
+
+The first method implemented by Police Scotland is the so-called $\beta$ elimination rate, which measures how quickly alcohol is eliminated from the blood stream. Using available data, a distribution for $\beta$ can be constructed, and the 2.5th and 97.5th percentiles of this distribution are used as the limits for this range. Currently, if an individual has a blood alcohol concentration above the legal limit, calculated using the lower 2.5th percentile of the $\beta$ distribution, the forensic team concludes that they are above the limit.
+
+During our investigation, we found...
+
+If it is too late for a blood or breath test to provide accurate results for the blood alcohol concentration at the time of the crime, eyewitness evidence measuring the quantity of alcohol consumed can be used in the Widmark's equation to calculate the blood alcohol concentration at a certain number of hours after drinking. This equation incorporates the eyewitness observed dose of alcohol consumed, the weight of the individual, and the so-called volume of distribution coefficient, "*a proportionality constant that relates the total amount of drug* (in our case alcohol) *in the body to the plasma concentration of the drug at a given time.*" (<https://www.ncbi.nlm.nih.gov/books/NBK545280/>). Currently, the forensics team at Police Scotland use the same approach when assessing the range of $V_d$, meaning they calculate the distributions of $\beta$ and $V_d$ separately and find their corresponding 2.5th and 97.5th percentiles, assuming the two measures are independent of one another.
+
+In our investigation, we found...
+
 # Task 1
 
 ## Exploratory Data Analysis
@@ -394,7 +404,7 @@ The 2.5% quantile in the gamma distribution for males is 0.1219521, and for fema
 
 ### Linear Model Method
 
-Instead of fitting a distribution, we can create a linear model. This creates a distribution for $\beta$ given a range of information about the suspect, whether this information is in the form of discrete or continuous form. This is more useful than the method that finds a different beta distribution for males and females, as it is not possible to do the same for continuous information such as age. Therefore the previous methods don't make the most of all the information given.
+Instead of fitting a distribution, we can create a linear model. This creates a distribution for $\beta$ given a range of information about the suspect, whether this information is in the form of discrete or continuous form. This is more useful than the method that finds a different beta distribution for males and females, as it is not possible to do the same for continuous information such as weight. Therefore the previous methods don't make the most of all the information given.
 
 We can create the following model, where $\beta_j$ represent the coefficients for $j \in \{0, ..., 4\}$ to model $Y_i$, the $i$ datapoints of $\beta$:
 
