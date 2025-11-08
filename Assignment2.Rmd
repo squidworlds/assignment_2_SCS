@@ -32,14 +32,14 @@ suppressPackageStartupMessages(library(broom))
 theme_set(
   theme_bw() +
     theme(
-      plot.title = element_text(size = 24, hjust = 0.5),
-      axis.title.x = element_text(size = 20),
-      axis.title.y = element_text(size = 20),
-      axis.text = element_text(size = 20),
-      legend.title = element_text(size = 20),
-      legend.text = element_text(size = 20),
-      plot.caption = element_text(size = 20, hjust = 1),
-      plot.subtitle = element_text(size = 20, face = "italic")
+      plot.title = element_text(size = 30, hjust = 0.5),
+      axis.title.x = element_text(size = 25),
+      axis.title.y = element_text(size = 25),
+      axis.text = element_text(size = 25),
+      legend.title = element_text(size = 25),
+      legend.text = element_text(size = 25),
+      plot.caption = element_text(size = 25, hjust = 1),
+      plot.subtitle = element_text(size = 25, face = "italic")
     )
 )
 ```
@@ -82,23 +82,23 @@ These are each plotted against the $\beta$ elimination rate. Intuitively a large
 
 # beta vs weight
 weight_plot <- ggplot(data, aes(x=weight, y=beta, colour = sex)) +
-  geom_point() +
+  geom_point(size = 3) +
   geom_smooth(method="lm", color="navy") +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   labs(title="Figure 1: β vs Weight", x="Weight (kg)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs height
 height_plot <- ggplot(data, aes(x=height, y=beta, colour = sex)) +
-  geom_point() +
+  geom_point(size = 3) +
   geom_smooth(method="lm", color="navy") +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   labs(title="Figure 2: β vs Height", x="Height (cm)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs age
 age_plot <- ggplot(data, aes(x=age, y=beta, colour = sex)) +
-  geom_point() +
+  geom_point(size = 3) +
   geom_smooth(method="lm", color="navy") +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   labs(title="Figure 3: β vs Age", x="Age (years)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs gender
@@ -106,7 +106,7 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
                              fill = sex)) +
   geom_violin(alpha = 0.8) +
   geom_boxplot(width = 0.2, color = "navy", alpha = 0.7) +
-  scale_fill_manual(values = c("lightblue", "steelblue")) +
+  scale_fill_manual(values = c("seagreen", "skyblue")) +
   labs(
     title = "Figure 4: β vs Gender",
     x = "Gender",
@@ -174,7 +174,7 @@ An issue with creating a distribution from the $\beta$ elimination rate values g
 density_plot <- ggplot(data, aes(x = beta)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005,
-                 fill = "navy",
+                 fill = "skyblue",
                  alpha = 0.55) +
   geom_density(color = "navy", 
                size = 1) +
@@ -210,7 +210,7 @@ stats <- data %>%
 # plot
 sex_density_plot <- ggplot(data, aes(x = beta, color = sex, fill = sex)) +
   geom_histogram(aes(y = after_stat(density)),
-                 binwidth = 0.005, alpha = 0.4, position = "identity") +
+                 binwidth = 0.005, alpha = 0.5, position = "identity") +
   geom_density(size = 1, alpha = 0) +
   geom_vline(data = stats, aes(xintercept = mean, color = sex),
              linetype = "dashed", size = 1) +
@@ -218,8 +218,8 @@ sex_density_plot <- ggplot(data, aes(x = beta, color = sex, fill = sex)) +
              linetype = "dotted", size = 1) +
   geom_vline(data = stats, aes(xintercept = q975, color = sex),
              linetype = "dotted", size = 1) +
-  scale_color_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  scale_fill_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_color_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
+  scale_fill_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   labs(x = expression(""*beta), y = "Density", title = expression("Distribution of "*beta*" by Sex"))
 
 sex_density_plot
@@ -229,17 +229,63 @@ These visualisations can point us towards a few different distributions. We can 
 
 #### Residual Plots of Fitted Distributions
 
-```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
-normal_fit <- fitdist(data$beta, distr = "norm", method = "mle")
-beta_fit <- fitdist(data$beta, distr = "beta", method = "mle")
-gamma_fit <- fitdist(data$beta, distr = "gamma", method = "mle")
+```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
-par(mfrow = c(2, 2), mar = c(4, 4, 2, 1))
+# Fit distributions
+normal_fit <- fitdist(data$beta, distr = "norm", method = "mle")
+beta_fit   <- fitdist(data$beta, distr = "beta", method = "mle")
+gamma_fit  <- fitdist(data$beta, distr = "gamma", method = "mle")
+
 plot.legend <- c("Normal", "Beta", "Gamma")
-denscomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
-qqcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
-cdfcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
-ppcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
+
+# Layout
+par(mfrow = c(2, 2), mar = c(5, 5, 3, 2), cex = 2)
+
+# --- DENSITY (custom lines) ---
+cols <- c("red", "green", "blue")
+ltys <- c(1, 2, 3)
+lwds <- rep(5, 5)
+
+denscomp(
+  list(normal_fit, beta_fit, gamma_fit),
+  legendtext = plot.legend,
+  fitcol = cols,
+  fitlty = ltys,
+  fitlwd = lwds,
+  xlab = "beta",
+  ylab = "Density",
+  main = "Density Comparison",
+  xlegend = "topright"
+)
+
+# --- QQ PLOT (use defaults) ---
+qqcomp(
+  list(normal_fit, beta_fit, gamma_fit),
+  legendtext = plot.legend,
+  fitcol = cols,
+  main = "QQ Plot Comparison",
+  xlegend = "bottomright"
+)
+
+# --- CDF PLOT (defaults) ---
+cdfcomp(
+  list(normal_fit, beta_fit, gamma_fit),
+  legendtext = plot.legend,
+    fitcol = cols,
+  fitlty = ltys,
+  fitlwd = lwds,
+  main = "CDF Comparison",
+  xlegend = "bottomright"
+)
+
+# --- PP PLOT (defaults) ---
+ppcomp(
+  list(normal_fit, beta_fit, gamma_fit),
+  legendtext = plot.legend,
+  fitcol = cols,
+  main = "PP Plot Comparison",
+  xlegend = "bottomright"
+)
 ```
 
 #### Normal Distribution
@@ -284,7 +330,7 @@ The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847.
 
 Considering that Sex is a factor variable, we can find the distributions of beta_60 dependent on whether the suspect is male of female.
 
-```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
+```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 m_data <- data %>% filter(Sex == "male")
 m_gamma_fit <- fitdist(m_data$beta, distr = "gamma", method = "mle")
@@ -319,7 +365,7 @@ stats_gamma <- data.frame(
 # plot
 sex_gamma_plot <- ggplot(data, aes(x = beta, color = Sex, fill = Sex)) +
   geom_histogram(aes(y = after_stat(density)),
-                 binwidth = 0.005, alpha = 0.4, position = "identity") +
+                 binwidth = 0.005, alpha = 0.5, position = "identity") +
   geom_line(data = gamma_long,
             aes(x = x, y = density, color = Sex),
             size = 1.2) +
@@ -328,8 +374,8 @@ sex_gamma_plot <- ggplot(data, aes(x = beta, color = Sex, fill = Sex)) +
     aes(xintercept = value, color = Sex, linetype = Quantile),
     size = 1
   ) +
-  scale_color_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  scale_fill_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_color_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
+  scale_fill_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   scale_linetype_manual(
     values = c("q025" = "dotted", "q50" = "dashed", "q975" = "dotted"),
     labels = c("2.5%", "50%", "97.5%")
@@ -339,12 +385,7 @@ sex_gamma_plot <- ggplot(data, aes(x = beta, color = Sex, fill = Sex)) +
     y = "Density",
     title = expression("Gamma Distributions of "*beta*" by Sex"),
     linetype = "Quantile"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
-    axis.title = element_text(size = 14, face = "bold")
-  )
+  ) 
 
 sex_gamma_plot
 ```
@@ -372,15 +413,22 @@ $$
 
 #### Residual Plots for Linear Model
 
-```{r modelling_beta, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+```{r modelling_beta, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 # --- linear modelling beta 60 attempt ---
 
 # model incorporating all characteristics
 lm_model <- lm(beta ~ weight + age + height + sex, data = data)
 
 # Residual plots
-par(mfrow = c(2,2))
-plot(lm_model)
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 2), cex = 2)
+
+plot(lm_model, which = 1, caption = "", main = "Residuals vs Fitted", sub.caption = "", cex.main = 2)
+
+plot(lm_model, which = 2, caption = "", main = "Q-Q Residuals", sub.caption = "", cex.main = 2)
+
+plot(lm_model, which = 3, caption = "", main = "Scale Location", sub.caption = "", cex.main = 2)
+
+plot(lm_model, which = 5, caption = "", main = "Residuals vs Leverage", sub.caption = "", cex.main = 2)
 ```
 
 -   `Residual vs Fitted`: There is a change of variance with mean, so the constant variance assumption is slightly violated. Unfortunately there is little data points to establish if this is an important violation.
@@ -410,15 +458,22 @@ We get the following residual graphs.
 
 #### Residual Plots for Square Root Linear Model
 
-```{r lm, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+```{r lm, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
 # Try modelling square root of beta (residual plots indicate a slight quadratic mean-variance relationship)
 
 sqrt_lm_model <- lm(sqrt(beta) ~ weight + age + height + sex, data = data)
 
 # Residual plots
-par(mfrow = c(2,2))
-plot(sqrt_lm_model)
+par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 2), cex = 2)
+
+plot(sqrt_lm_model, which = 1, caption = "", main = "Residuals vs Fitted", sub.caption = "", cex.main = 2)
+
+plot(sqrt_lm_model, which = 2, caption = "", main = "Q-Q Residuals", sub.caption = "", cex.main = 2)
+
+plot(sqrt_lm_model, which = 3, caption = "", main = "Scale Location", sub.caption = "", cex.main = 2)
+
+plot(sqrt_lm_model, which = 5, caption = "", main = "Residuals vs Leverage", sub.caption = "", cex.main = 2)
 ```
 
 The `Q-Q Residuals` plot is improved, however there is only marginal change in the `Residuals vs Fitted` plot. Therefore we explore alternative methods.
@@ -449,7 +504,7 @@ plot_data <- pred_data %>%
 
 # Plot
 quantile_v_lm_plot <- ggplot(plot_data, aes(x = beta, y = predicted_beta, color = model)) +
-  geom_point(alpha = 0.6) +
+  geom_point( size = 3) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
     title = expression("Comparing Models for the 2.5% Quantile for "*beta),
@@ -457,7 +512,7 @@ quantile_v_lm_plot <- ggplot(plot_data, aes(x = beta, y = predicted_beta, color 
     y = expression("Predicted "*beta),
     color = "Model Type"
   ) +
-  scale_color_manual(values = c("lm_q025" = "firebrick", "rq_pred" = "forestgreen"),
+  scale_color_manual(values = c("lm_q025" = "orange", "rq_pred" = "darkred"),
                      labels = c("Linear Regression", "Quantile Regression"))
 
 quantile_v_lm_plot
@@ -471,12 +526,11 @@ The current forensic approach uses a single threshold for the elimination rate, 
 
 $$
 C_0 = C_t + \beta t
-$$
-to obtain a point estimate of the blood alcohol concentration at the time of driving. A binary decision is then made as to whether this estimated $C_0$ exceeds the legal limit. While this approach is simple, it disregards uncertainty in $\beta$ and in the model used to derive it. Consequently, it may give a misleading impression of precision in borderline cases.
+$$ to obtain a point estimate of the blood alcohol concentration at the time of driving. A binary decision is then made as to whether this estimated $C_0$ exceeds the legal limit. While this approach is simple, it disregards uncertainty in $\beta$ and in the model used to derive it. Consequently, it may give a misleading impression of precision in borderline cases.
 
-To provide a more transparent and scientifically defensible analysis, we propose that Police Scotland adopt a probabilistic reporting framework, which explicitly quantifies the uncertainty in $\beta$ and its effect on the estimated blood alcohol concentration $C_0$. 
+To provide a more transparent and scientifically defensible analysis, we propose that Police Scotland adopt a probabilistic reporting framework, which explicitly quantifies the uncertainty in $\beta$ and its effect on the estimated blood alcohol concentration $C_0$.
 
-#### **1. Probabilistic (Simulation-Based) Estimation** 
+#### **1. Probabilistic (Simulation-Based) Estimation**
 
 Given that we have found $\beta$ to follow a Gamma distribution,
 
@@ -501,11 +555,11 @@ $$
 \mathbb{P}(C_0 > x) = 1 - F_{Gamma}\left(\frac{(x - C_t)}{t} ; \hat{\alpha}, \hat{\lambda}\right)
 $$
 
-where $F_{Gamma}$ is the cumulative distribution function of the Gamma distribution. 
+where $F_{Gamma}$ is the cumulative distribution function of the Gamma distribution.
 
 This probability offers a more nuances summary than a simple 'above/below limit' approach. For example, if $\mathbb{P}(C_0 > x) = 0.78$, the expert witness could state that there is a 78% probability that the suspect's blood alcohol concentration exceeded the legal limit at the time of driving.
 
-#### **2. Interval Based Presentation** 
+#### **2. Interval Based Presentation**
 
 Alongside the probability, a prediction interval for $C_0$ could be presented:
 
@@ -566,13 +620,13 @@ For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arres
 
 "Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently."
 
-#### **3. Graphical 'Uncertainty Band' Presentation** 
+#### **3. Graphical 'Uncertainty Band' Presentation**
 
 Plot $C_0 = C_t + \beta t$ versus $\beta$, and overlay:
 
-- the estimated Gamma PDF for \beta;
-- a vertical line at the legal limit;
-- shading for the proportion of the $\beta$ distribution that yields $C_0 > x$
+-   the estimated Gamma PDF for \beta;
+-   a vertical line at the legal limit;
+-   shading for the proportion of the $\beta$ distribution that yields $C_0 > x$
 
 This visually communicates both uncertainty in $\beta$, and how close the case is to the threshold.
 
@@ -630,7 +684,6 @@ axis(side = 4, col = "red", col.axis = "red")
 mtext("Density", side = 4, line = 3, col = "red")
 
 ```
-
 
 ## Task 2
 
@@ -720,7 +773,7 @@ Similar to our approach in analysing the effectiveness of the $\beta$ eliminatio
 
 Figures 5-9 help us visualise these relationships.
 
-```{r task_3, echo = FALSE, message = FALSE, warning=FALSE, fig.width=15, fig.height=15, fig.align='center'}
+```{r task_3, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # define A, Co, Vd
 data$A <- data$`Amount of Alcohol Consumed (g)`
@@ -733,30 +786,30 @@ data$Vd <- data$A/(data$Co *data$weight)
 
 # histogram of Vd
 ggplot(data, aes(x = Vd)) +
-  geom_histogram(bins = 20, colour = "navy", fill = "steelblue") +
-  labs(title = "Figure 5: Distribution of Volume of Distribution (Vd)",
+  geom_histogram(bins = 20, colour = "navy", fill = "skyblue") +
+  labs(title = "Figure 5: Histogram of Volume of Distribution (Vd)",
        x = "Vd (L/kg)", y = "Count")
 ```
 
 ```{r task_3_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 # Vd vs weight
 weight_plot2 <- ggplot(data, aes(x = weight, y = Vd, colour = sex)) +
-  geom_point() +
+  geom_point(size = 3) +
   geom_smooth(method = "lm", colour = "navy") +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   labs(title = "Figure 6: Vd vs Weight", x = "Weight (kg)", y = "Vd (L/kg)")
 
 # Vd vs height
 height_plot2 <- ggplot(data, aes(x = height, y = Vd, colour = sex)) +
-  geom_point() +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  geom_point(size = 3) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   geom_smooth(method = "lm", colour = "navy") +
   labs(title = "Figure 7: Vd vs Height", x = "Height (cm)", y = "Vd (L/kg)")
 
 # Vd vs age
 age_plot2 <- ggplot(data, aes(x = age, y = Vd, colour = sex)) +
-  geom_point() +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  geom_point(size = 3) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   geom_smooth(method = "lm", colour = "navy") +
   labs(title = "Figure 8: Vd vs Age", x = "Age (years)", y = "Vd (L/kg)")
 
@@ -765,7 +818,7 @@ sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
                              fill = sex)) +
   geom_violin(alpha = 0.8) +
   geom_boxplot(width = 0.2, color = "navy", alpha = 0.7) +
-  scale_fill_manual(values = c("lightblue", "steelblue")) +
+  scale_fill_manual(values = c("seagreen", "skyblue")) +
   labs(
     title = "Figure 9: Vd vs Gender",
     x = "Gender",
@@ -810,8 +863,8 @@ Vd_range   <- quantile(data$Vd, probs = c(0.025, 0.975))
 
 # Scatter plot between beta and V_d
 ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
-  geom_point() +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  geom_point(size = 3) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   geom_smooth(method = "lm", color = "navy") +
   labs(
     title = "Figure 10: Relationship between β and Vd",
@@ -846,24 +899,24 @@ Assuming independence allows forensic analysts to combine their most extreme val
 # Visualize the joint distribution
 
 ggplot(data, aes(x = beta, y = Vd)) +
-  geom_point(alpha = 0.6, color = "steelblue") +
-  geom_density_2d(color = "navy") +
+  geom_point(alpha = 0.6, color = "orange", size = 3) +
+  geom_density_2d(color = "red") +
   # Add the marginal 97.5th percentiles
   geom_vline(xintercept = quantile(data$beta, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "red", linewidth = 1) +
+             linetype = "dashed", color = "blue", linewidth = 1) +
   geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "red", linewidth = 1) +
+             linetype = "dashed", color = "blue", linewidth = 1) +
   labs(
     title = "Joint Distribution of β and Vd",
-    subtitle = "Red lines show marginal 97.5th percentiles",
+    subtitle = "Blue lines show marginal 97.5th percentiles",
     x = "β (g/kg/h)",
     y = "Vd (L/kg)"
   ) +
   annotate("text", 
            x = quantile(data$beta, 0.975, na.rm = TRUE), 
            y = min(data$Vd, na.rm = TRUE),
-           label = "97.5th percentile β", 
-           hjust = -0.1, color = "red")
+           label = "97.5th percentile β", size = 7, 
+           hjust = -0.1, color = "blue")
 
 
 ```
