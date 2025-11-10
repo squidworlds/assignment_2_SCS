@@ -177,7 +177,7 @@ Due to the clear relationships between $\beta$ and characteristics of the tested
 
 ### Finding Distribution Method
 
-An issue with creating a distribution from the $\beta$ elimination rate values given is that we only have 100 data points. Therefore the distribution is very dependent on not many values. We propose instead investigating if beta_60 follows a standard distribution. First, we will examine the general spread of beta_60 values given in the following histogram.
+An issue with creating a distribution from the $\beta$ elimination rate values given is that we only have 100 data points. Therefore the distribution is very dependent on not many values. We propose instead investigating if $\beta$ follows a standard distribution. First, we will examined the general spread of $\beta$ values given in the following histogram.
 
 ```{r density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -238,6 +238,8 @@ sex_density_plot
 These visualisations can point us towards a few different distributions. We can analyse how well the data fits the distributions in the following plots.
 
 #### Residual Plots of Fitted Distributions
+
+The aim of finding a distribution to fit $\beta$ is to smooth out the distribution to decrease the influence of a few outliers in the original dataset, as there are only 100 values. That means that a single datapoint can skew the $2.5%$ quantile that we are aiming to find. We are also focused on simplicity, so have only looked at 3 different distributions that have the general shape of the data, shown in the figures in the section above. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs below.
 
 ```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
@@ -328,7 +330,7 @@ ppcomp(
 
 -   `P-P plot`: Majority of points lie on fitted line.
 
-This is an improved fit compared to the normal distribution, as the empirical and theoretical densities are more aligned, and ... A similar distribution is the gamma distribution.
+After looking at the residuals, we conclude that Gamma is the most appropriate distribution for our $\beta$ with the fitting method.
 
 ```{r gamma, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 gamma_shape <- gamma_fit$estimate[[1]]
@@ -336,7 +338,56 @@ gamma_rate <- gamma_fit$estimate[[2]]
 q025 <- qgamma(0.025, gamma_shape, gamma_rate)
 ```
 
-The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847.
+The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847. The Density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit.
+
+```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
+gamma_df <- data.frame(
+  x = data$beta,
+  density = dgamma(data$beta, shape = gamma_shape, rate = gamma_rate)
+)
+
+quantiles <- qgamma(c(0.025, 0.5, 0.975), gamma_shape, gamma_rate)
+
+stats_gamma <- data.frame(
+  Quantile = rep(c("q025", "q50", "q975")),
+  value = quantiles
+)
+
+# plot
+gamma_plot <- ggplot(data, aes(x = beta)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    binwidth = 0.005,
+    fill = "steelblue",
+    alpha = 0.5,
+    position = "identity") +
+  geom_line(
+    data = gamma_df,
+    aes(x = x,
+        y = density
+        ),
+    color = "navy",
+    size = 1.2) +
+  geom_vline(
+    data = stats_gamma,
+    aes(xintercept = value,
+        linetype = Quantile),
+    color = "navy",
+    size = 1
+  ) +
+  scale_linetype_manual(
+    values = c("q025" = "dotted", "q50" = "dashed", "q975" = "dotted"),
+    labels = c("2.5%", "50%", "97.5%")
+  ) +
+  labs(
+    x = expression(beta),
+    y = "Density",
+    title = expression("Gamma Distribution of "*beta),
+    linetype = "Quantile"
+  ) 
+
+gamma_plot
+```
 
 Considering that Sex is a factor variable, we can find the distributions of beta_60 dependent on whether the suspect is male of female.
 
@@ -360,13 +411,13 @@ gamma_sex_df <- data.frame(
   female_density = dgamma(data$beta, shape = f_gamma_shape, rate = f_gamma_rate)
 )
 
-gamma_long <- gamma_sex_df %>%
+gamma_sex_long <- gamma_sex_df %>%
   pivot_longer(cols = c(male_density, female_density),
                names_to = "Sex",
                values_to = "density") %>%
   mutate(Sex = ifelse(Sex == "male_density", "male", "female"))
 
-stats_gamma <- data.frame(
+stats_gamma_sex <- data.frame(
   Sex = rep(c("male", "female"), each = 3),
   Quantile = rep(c("q025", "q50", "q975"), times = 2),
   value = c(m_quantiles, f_quantiles)
@@ -376,11 +427,11 @@ stats_gamma <- data.frame(
 sex_gamma_plot <- ggplot(data, aes(x = beta, color = Sex, fill = Sex)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005, alpha = 0.5, position = "identity") +
-  geom_line(data = gamma_long,
+  geom_line(data = gamma_sex_long,
             aes(x = x, y = density, color = Sex),
             size = 1.2) +
   geom_vline(
-    data = stats_gamma,
+    data = stats_gamma_sex,
     aes(xintercept = value, color = Sex, linetype = Quantile),
     size = 1
   ) +
@@ -529,6 +580,7 @@ quantile_v_lm_plot
 ```
 
 While it may look like taking the 2.5% quantile of the linear model, and using the quantile regression model produce very similar results, the methods are different. To find the 2.5% quantile of the linear model, we find the 2.5% quantile of the residuals, and add that onto $E(\beta | x)$ predicted by our model. This assumes homoscedaticity, that the residuals are independent of predictors, and we have shifted the line uniformly, without taking into account how residual quantile could change across the data. Our quantile regression method does not have a homoscedaticity assumption, which is more reasonable, especially as the residual plots of our linear model are questionable in upholding the homoscedaticity assumption.
+
 
 ### **Recommended Reporting Framework for Police Scotland**
 
@@ -695,13 +747,15 @@ mtext("Density", side = 4, line = 3, col = "red")
 
 ```
 
+Quantile of whole distribution of y|x, instead of quantile of expectation of y|x.
+
 ## Task 2
 
 We will compare the performance of our different approaches outlined in Task 1 with the following case study.
 
 A 70 year old female (weight: 70kg, height: 160cm) is arrested after being stopped by the police while driving. She provides a blood sample to the police 2 hours after her arrest which gives a reading of Ct = 0.15g/kg (i.e. grams of alcohol per kilogram of blood). The legal limit is x = 0.47g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
 
-We can find the $2.5%$ quantile of the different beta distributions.
+We can find the $2.5%$ quantile of the different beta distributions. Why?
 
 ```{r task_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -752,6 +806,9 @@ kable(results_table, digits = 3,
       col.names = c("Approach", "Lower (2.5%)", "Central", "Upper (97.5%)"),
       caption = "Comparison of estimated C₀ values for the various approaches")
 ```
+
+
+The legal limit is 0.47g/kg. 
 
 ## Task 3
 
