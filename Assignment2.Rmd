@@ -1,11 +1,12 @@
 ---
-title: "Assignment 2"
-author: Group 20, Aliya Mosha (s2206786), Saioa Galvin (s2516907), Hugh Graham (s2318382),
-  (... words)
-date: "2025-10-29"
+title: "Forensic Modelling of Blood Alcohol Evidence"
+subtitle: (... words)
+author: Group 20, Aliya Mosha (s2206786), Saioa Galvin (s2516907), Hugh Graham (s2318382)
 output:
-  html_document: default
-  pdf_document: default
+  html_document: 
+    toc: true
+    toc_float: false
+    toc_depth: 3
 ---
 
 ```{r load_packages, include=FALSE}
@@ -59,23 +60,61 @@ data$age <- data$`Age (years)`
 data$beta <- -data$beta60
 ```
 
+\newpage
+
 # Executive Summary
 
-In this statistical report, we investigate the techniques used by the forensic services at Police Scotland on blood alcohol computations in criminal cases associated with drink driving. Since breath tests used at the scene of a crime are not accurate enough for prosecution, back calculation techniques must be implemented once accurate blood alcohol data has been recorded to estimate whether the suspect was over the limit at the time of the crime.
+In this statistical report, we investigate the techniques used by the forensic services at Police Scotland on blood alcohol computations in criminal cases associated with drink driving. In UK law, it is an offence to drive with blood alcohol concentration (BAC) above the prescribed limit. Since alcohol levels fall over time, the measured BAC at the police station is lower than at the time of driving; forensic scientists ‘back-calculate’ the earlier level using an elimination rate.
 
-The first method implemented by Police Scotland is the so-called $\beta$ elimination rate, which measures how quickly alcohol is eliminated from the blood stream. Using available data, a distribution for $\beta$ can be constructed, and the 2.5th and 97.5th percentiles of this distribution are used as the limits for this range. Currently, if an individual has a blood alcohol concentration above the legal limit, calculated using the lower 2.5th percentile of the $\beta$ distribution, the forensic team concludes that they are above the limit.
+The first method implemented by Police Scotland is the so-called $\beta$ elimination rate, which measures how quickly alcohol is eliminated from the bloodstream. Using available data, a distribution for $\beta$ can be constructed, and the 2.5th and 97.5th percentiles of this distribution are used as the limits for this range. Currently, if an individual has a blood alcohol concentration above the legal limit, calculated using the lower 2.5th percentile of the $\beta$ distribution, the forensic team concludes that they are above the limit. We assessed whether this approach fairly represents uncertainty and whether a clearer reporting standard could improve transparency.
 
-During our investigation, we found...
+Using the provided dataset, we examined how $\beta$ varies based on individual characteristics (weight, height, age, sex) and compared several modelling strategies: using empirical percentiles, parametric fitting, sex-specific shifts, linear models, and quantile regression for the 2.5% of $\beta$.
 
-If it is too late for a blood or breath test to provide accurate results for the blood alcohol concentration at the time of the crime, eyewitness evidence measuring the quantity of alcohol consumed can be used in the Widmark's equation to calculate the blood alcohol concentration at a certain number of hours after drinking. This equation incorporates the eyewitness observed dose of alcohol consumed, the weight of the individual, and the so-called volume of distribution coefficient, "*a proportionality constant that relates the total amount of drug* (in our case alcohol) *in the body to the plasma concentration of the drug at a given time.*" (<https://www.ncbi.nlm.nih.gov/books/NBK545280/>). Currently, the forensics team at Police Scotland use the same approach when assessing the range of $V_d$, meaning they calculate the distributions of $\beta$ and $V_d$ separately and find their corresponding 2.5th and 97.5th percentiles, assuming the two measures are independent of one another.
+In practice, we found that $\beta$ shows significant variation across individuals, suggesting treating $\beta$ as a single fixed range for everyone ignores these variabilities. Further, estimates are better represented with uncertainty rather than using a single cutoff, as is currently implemented. These findings support the idea that estimates should be coupled with uncertainty, and that a probability of exceeding the legal limit, rather than a binary verdict seems a more fitting approach.
 
-In our investigation, we found...
+We also considered situations where no blood sample is available and Widmark’s equation must be used along with eyewitness dose, which introduces the volume of distribution $V_d$. The standard approach treats $\beta$ and $V_d$ as independent and applies fixed percentile ranges for both.
 
-# Task 1
+We found that $V_d$ and $\beta$ are negatively correlated in the data. The common practice of combining extreme marginal percentiles for $\beta$ and $V_d$ while assuming independence can therefore produce implausible joint scenarios.
 
-## Exploratory Data Analysis
+Based on our findings, we encourage expert reports used in jurisdiction cases to include:
 
-In order to understand and evaluate the performance of the $\beta$ elimination rate, we first examine various plots to visualise how the rate is influenced by certain characteristics. The characteristics of interest are:
+-   the measured BAC
+
+-   the elapsed time since driving
+
+-   the estimated BAC at time of driving ($C_0$)
+
+-   a 95% uncertainty interval for $C_0$ derived from the fitted $\beta$ distribution
+
+-   the probability that $C_0$ exceeded the legal limit.
+
+Further, we recommend that when Widmark's equation is used, reports should specify the assumed distributions for $\beta$ and $V_d$, along with acknowledgement of their relationship.
+
+\newpage
+
+# Investigating the $\beta$ Elimination Rate
+
+## Introduction
+
+The $\beta$ elimination rate (measured in g/kg/hr) measures how quickly alcohol is eliminated from the bloodstream, and is used by forensic scientists at Police Scotland when 'back-calculating' the BAC at the time of offence. This calculation is of form
+
+$$C_0 = C_t +\beta t,$$
+
+where $C_t$ is the measured BAC at time $t$ hours after the alleged offence, and $C_0$ is the estimated BAC at the time of driving.
+
+Currently, forensic scientists use a single, fixed range of $\beta$ values for all individuals. This approach simplifies practical implementation but does not account for variability due to characteristics of the individual. In particular, factors such as age, gender, weight, or height could influence the rate at which alcohol is eliminated from the bloodstream.
+
+Hence, it is worth exploring whether $\beta$ can be more effectively modelled to reflect the variability in individual's characteristics, rather than relying on a fixed population range.
+
+## Provided Data
+
+The dataset analysed in this study was taken from a PhD thesis, and contains measurements associated with BAC. In particular, the dataset contains 100 observations with characteristic information about the individual, and details about the dose of alcohol consumed by the individual.
+
+Key variables that are explored in this report include:
+
+-   `Beta60`: the negative of the $\beta$ elimination rate (g/kg/hr), though for our analysis we took the corresponding positive variable `beta`;
+
+-   `C0`: the concentration of alcohol in the blood at time zero;
 
 -   `weight`: the weight (in kg) of a given individual;
 
@@ -83,7 +122,13 @@ In order to understand and evaluate the performance of the $\beta$ elimination r
 
 -   `age`: the age (in years) of a given individual;
 
--   `sex`: the sex of a given individual.
+-   `sex`: the sex of a given individual;
+
+-   `Amount of alcohol consumed`: the dose (in g) of alcohol consumed.
+
+## Exploratory Data Analysis
+
+In order to understand and evaluate the performance of the $\beta$ elimination rate, we first examine various plots to visualise how the rate is influenced by certain characteristics. The characteristics of interest are weight, height, age, and sex.
 
 These are each plotted against the $\beta$ elimination rate. Intuitively a larger $\beta$ value corresponds to faster elimination of alcohol from the blood stream. Figures 1-4 below explore these relationships.
 
@@ -581,8 +626,9 @@ quantile_v_lm_plot
 
 While it may look like taking the 2.5% quantile of the linear model, and using the quantile regression model produce very similar results, the methods are different. To find the 2.5% quantile of the linear model, we find the 2.5% quantile of the residuals, and add that onto $E(\beta | x)$ predicted by our model. This assumes homoscedaticity, that the residuals are independent of predictors, and we have shifted the line uniformly, without taking into account how residual quantile could change across the data. Our quantile regression method does not have a homoscedaticity assumption, which is more reasonable, especially as the residual plots of our linear model are questionable in upholding the homoscedaticity assumption.
 
+\newpage
 
-### **Recommended Reporting Framework for Police Scotland**
+## Recommended Reporting Framework for Police Scotland
 
 The current forensic approach uses a single threshold for the elimination rate, specifically the 2.5th percentile of the empirical or fitted distribution of $\beta$. This value is substituted into
 
@@ -592,7 +638,7 @@ $$ to obtain a point estimate of the blood alcohol concentration at the time of 
 
 To provide a more transparent and scientifically defensible analysis, we propose that Police Scotland adopt a probabilistic reporting framework, which explicitly quantifies the uncertainty in $\beta$ and its effect on the estimated blood alcohol concentration $C_0$.
 
-#### **1. Probabilistic (Simulation-Based) Estimation**
+### 1. Probabilistic (Simulation-Based) Estimation
 
 Given that we have found $\beta$ to follow a Gamma distribution,
 
@@ -621,7 +667,7 @@ where $F_{Gamma}$ is the cumulative distribution function of the Gamma distribut
 
 This probability offers a more nuances summary than a simple 'above/below limit' approach. For example, if $\mathbb{P}(C_0 > x) = 0.78$, the expert witness could state that there is a 78% probability that the suspect's blood alcohol concentration exceeded the legal limit at the time of driving.
 
-#### **2. Interval Based Presentation**
+### 2. Interval Based Presentation
 
 Alongside the probability, a prediction interval for $C_0$ could be presented:
 
@@ -631,8 +677,8 @@ $$
 
 This provides a range of plausible values for $C_0$ given the uncertainty in $\beta$. For example, using $C_t = 0.15 g/kg$ and $t = 2$ hours, a 95% prediction/credible interval for the blood alcohol concentration at the time of driving, $C_0$, would be (0.4, 0.66) g/kg.
 
-```{r}
-# Case Study Parameters (from task 2)
+```{r, echo = FALSE, message = FALSE}
+# Given parameters
 Ct <- 0.15         # measured concentration (g/kg)
 t  <- 2            # time since arrest (hours)
 x  <- 0.47         # legal limit (g/kg)
@@ -651,29 +697,47 @@ C0_upper <- Ct + beta_q975 * t
 C0_interval <- c(C0_lower, C0_upper)
 
 # 3. Compute probability that true C0 exceeded legal limit
-#    P(C0 > x) = P(beta > (x - Ct)/t)
 beta_threshold <- (x - Ct) / t
 p_over_limit <- 1 - pgamma(beta_threshold, shape = gamma_shape, rate = gamma_rate)
 
-# 4. Monte Carlo simulation (for illustration if can't use analytical method)
+# 4. Monte Carlo simulation
 set.seed(123)
 n_sim <- 1000
 beta_samples <- rgamma(n_sim, shape = gamma_shape, rate = gamma_rate)
 C0_samples <- Ct + beta_samples * t
-
-# Estimated probability from simulation
 p_over_limit_sim <- mean(C0_samples > x)
 
 # Summaries
 C0_mean <- mean(C0_samples)
 C0_sd   <- sd(C0_samples)
 
-# Output neatly
-cat("95% credible interval for C0: (", round(C0_lower,3), ",", round(C0_upper,3), ")\n")
-cat("Probability(C0 > limit) [analytical] =", round(p_over_limit,3), "\n")
-cat("Probability(C0 > limit) [simulation] =", round(p_over_limit_sim,3), "\n")
-cat("Mean C0 =", round(C0_mean,3), ", SD =", round(C0_sd,3), "\n")
+# Create summary table
+results <- data.frame(
+  Statistic = c(
+    "Lower 95% bound for C₀",
+    "Upper 95% bound for C₀",
+    "Analytical P(C₀ > 0.47 g/kg)",
+    "Simulated P(C₀ > 0.47 g/kg)",
+    "Mean of simulated C₀",
+    "SD of simulated C₀"
+  ),
+  Value = c(
+    round(C0_lower, 3),
+    round(C0_upper, 3),
+    round(p_over_limit, 3),
+    round(p_over_limit_sim, 3),
+    round(C0_mean, 3),
+    round(C0_sd, 3)
+  )
+)
 
+kable(
+  results,
+  caption = "Summary of Back-Calculated Blood-Alcohol Concentration (C₀)",
+  col.names = c("Statistic", "Value"),
+  align = c("l", "c"),
+  format = "markdown"
+)
 ```
 
 For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arrest and the fitted Gamma model for the elimination rate, the estimated 95% prediction/credible interval for the blood alcohol concentration at the time of driving is $C_0 \in (0.40,0.66)g/kg$. The probability that the true $C_0$ exceeded the legal limit of 0.47 g/kg is approximately 76%.
@@ -682,7 +746,7 @@ For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arres
 
 "Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently."
 
-#### **3. Graphical 'Uncertainty Band' Presentation**
+### 3. Graphical 'Uncertainty Band' Presentation
 
 Plot $C_0 = C_t + \beta t$ versus $\beta$, and overlay:
 
@@ -692,7 +756,7 @@ Plot $C_0 = C_t + \beta t$ versus $\beta$, and overlay:
 
 This visually communicates both uncertainty in $\beta$, and how close the case is to the threshold.
 
-```{r}
+```{r, echo = FALSE, message = FALSE}
 
 # Parameters
 gamma_shape <- 31.9538
@@ -747,11 +811,13 @@ mtext("Density", side = 4, line = 3, col = "red")
 
 ```
 
-Quantile of whole distribution of y|x, instead of quantile of expectation of y|x.
+Quantile of whole distribution of y\|x, instead of quantile of expectation of y\|x.
 
-## Task 2
+\newpage
 
-We will compare the performance of our different approaches outlined in Task 1 with the following case study.
+## Applying Various Approaches
+
+To compare the performance of our different approaches outlined above we consider the following case study.
 
 A 70 year old female (weight: 70kg, height: 160cm) is arrested after being stopped by the police while driving. She provides a blood sample to the police 2 hours after her arrest which gives a reading of Ct = 0.15g/kg (i.e. grams of alcohol per kilogram of blood). The legal limit is x = 0.47g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
 
@@ -807,12 +873,13 @@ kable(results_table, digits = 3,
       caption = "Comparison of estimated C₀ values for the various approaches")
 ```
 
+The legal limit is 0.47g/kg.
 
-The legal limit is 0.47g/kg. 
+\newpage
 
-## Task 3
+# Investigating Volume of Distribution
 
-### Finding $V_d$
+## Introduction
 
 If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). The validity of this estimate is dependent on the reliability of the eyewitness' testimony, however this analysis can be combined with other evidence to support a case. Widmark's equation can be written as
 
@@ -820,7 +887,7 @@ $$
 C_t = \frac{A}{\text{Weight} \times V_d} - \beta t,
 $$
 
-where $A$ is the observed does of alcohol consumed, $\text{Weight}$ is the weight of the individual, and $V_d$ is a parameter known as the volume of distribution. Rearranging this equation we find
+where $A$ is the observed does of alcohol consumed, $\text{Weight}$ is the weight of the individual, and $V_d$ is a parameter known as the volume of distribution, "*a proportionality constant that relates the total amount of drug* (in our case alcohol) *in the body to the plasma concentration of the drug at a given time.*" (<https://www.ncbi.nlm.nih.gov/books/NBK545280/>). $V_d$ is measured with the units L/kg. Rearranging this equation we find
 
 $$
 C_0 = C_t +\beta_t = \frac{A}{\text{Weight} \times V_d},
@@ -834,7 +901,7 @@ $$
 
 Hence, given we are provided the data for $A$, $\text{Weight}$, and $C_0$, we can calculate $V_d$ using the above equation.
 
-### Exploratory Data Analysis
+## Exploratory Data Analysis
 
 Similar to our approach in analysing the effectiveness of the $\beta$ elimination rate, we can investigate the relationships between $V_d$ and characteristics of individuals (weight, height, age, and sex). It is also worth investigating the distribution of $V_d$ values across our sample.
 
@@ -946,14 +1013,14 @@ From the correlation test, we find that there is an observed correlation of -0.4
 
 Figure 10 further highlights this clear relationship between the two measures, and hence the independence assumption appears to be violated.
 
-#### **Advantages of Current Method**
+### Advantages of Current Method
 
 -   Simplicity: Easy to implement and explain in court
 -   Conservative: Using the 97.5th percentiles provides a "benefit of the doubt" to defendants
 -   Standardised: Same approach across all cases ensures consistency
 -   Transparent: Clear, reproducible methodology
 
-#### **Limitations of Current Method**
+### Limitations of Current Method
 
 The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, a Pearson's product-moment correlation analysis reveals a statistically significant negative correlation between these two parameters (correlation coefficient = -0.4036489, p-value = 3.122e-05 \< 0.05). This finding directly contradicts the independence assumption underlying the current approach.
 
@@ -990,13 +1057,13 @@ ggplot(data, aes(x = beta, y = Vd)) +
 
 The above plot of the joint distribution between $\beta$ and $V_d$ shows that there are no points in the top-right corner where both parameters are at their 97.5th marginal quantile simultaneously.
 
-#### **Potential Alternative Methods**
+## Potential Alternative Methods
 
 1.  Use the empirical joint distribution of $(\beta, V_d)$ from the data
 2.  Model the correlation structure explicitly (e.g. through the use of a linear regression model)
 3.  Bayesian approach with prior distributions for $(\beta, V_d)$ specified and incorporated in the calculation (use eye-witness testimony as your "data" in order to calculate the posterior distribution)
 
-#### **Alternative 1: Empirical Joint Distribution**
+### Alternative 1: Empirical Joint Distribution
 
 ```{r emp_joint_dist, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -1034,7 +1101,9 @@ The empirical joint $C_t$ distribution represents the upper and lower bounds of 
 
 As seen from the table above this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
 
-#### **Alternative 2: Linear Regression**
+### Alternative 2: Linear Regression
+
+\newpage
 
 # Code Appendix
 
