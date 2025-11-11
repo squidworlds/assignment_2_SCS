@@ -742,9 +742,7 @@ kable(
 
 For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arrest and the fitted Gamma model for the elimination rate, the estimated 95% prediction/credible interval for the blood alcohol concentration at the time of driving is $C_0 \in (0.40,0.66)g/kg$. The probability that the true $C_0$ exceeded the legal limit of 0.47 g/kg is approximately 76%.
 
-*Not sure whether to put this bit in task 2 analysis!:*
-
-"Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently."
+Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently.
 
 ### 3. Graphical 'Uncertainty Band' Presentation
 
@@ -1015,10 +1013,7 @@ Figure 10 further highlights this clear relationship between the two measures, a
 
 ### Advantages of Current Method
 
--   Simplicity: Easy to implement and explain in court
--   Conservative: Using the 97.5th percentiles provides a "benefit of the doubt" to defendants
--   Standardised: Same approach across all cases ensures consistency
--   Transparent: Clear, reproducible methodology
+The current method offers several key strengths that make it well-suited for forensic applications. Its straightforward approach is both easy to implement and readily explained in court proceedings, which is essential for ensuring that evidence is understood by legal professionals and juries. By using the 97.5th percentiles, the method takes a conservative stance that provides defendants with the benefit of the doubt, aligning with fundamental principles of justice. The standardised nature of this approach ensures consistency across all cases, preventing arbitrary variations in how evidence is evaluated. Furthermore, the methodology's transparency and reproducibility give it scientific rigour, allowing independent verification of results and supporting its credibility in legal contexts.
 
 ### Limitations of Current Method
 
@@ -1057,13 +1052,7 @@ ggplot(data, aes(x = beta, y = Vd)) +
 
 The above plot of the joint distribution between $\beta$ and $V_d$ shows that there are no points in the top-right corner where both parameters are at their 97.5th marginal quantile simultaneously.
 
-## Potential Alternative Methods
-
-1.  Use the empirical joint distribution of $(\beta, V_d)$ from the data
-2.  Model the correlation structure explicitly (e.g. through the use of a linear regression model)
-3.  Bayesian approach with prior distributions for $(\beta, V_d)$ specified and incorporated in the calculation (use eye-witness testimony as your "data" in order to calculate the posterior distribution)
-
-### Alternative 1: Empirical Joint Distribution
+### Alternative Approach: Empirical Joint Distribution
 
 ```{r emp_joint_dist, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -1101,7 +1090,6 @@ The empirical joint $C_t$ distribution represents the upper and lower bounds of 
 
 As seen from the table above this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
 
-### Alternative 2: Linear Regression
 
 \newpage
 
