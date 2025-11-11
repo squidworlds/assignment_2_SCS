@@ -657,6 +657,8 @@ The `Q-Q Residuals` plot is improved, however there is only marginal change in t
 
 The biggest issue with the linear model above for use in our project is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model. The aim of our analysis is to find the 2.5% quantile of $\beta$. It is more accurate to use quantile regression. We use the same linear model as above.
 
+Quantile of whole distribution of y\|x, instead of quantile of expectation of y\|x.
+
 ```{r comparing_rq, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # fit models
@@ -921,41 +923,47 @@ For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arres
 
 Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently.
 
-### 3. Graphical 'Uncertainty Band' Presentation
+### 3. Graphical Uncertainty Presentation
 
-Plot $C_0 = C_t + \beta t$ versus $\beta$, and overlay:
 
--   the estimated Gamma PDF for \beta;
--   a vertical line at the legal limit;
--   shading for the proportion of the $\beta$ distribution that yields $C_0 > x$
+This approach visually presents the relationship between the elimination rate, $\beta$, and the estimated blood alcohol concentration at the time of driving, $C_0 = C_t + \beta t$.
 
-This visually communicates both uncertainty in $\beta$, and how close the case is to the threshold.
+The figure combines several elements:
 
-```{r, echo = FALSE, message = FALSE}
+- The fitted probability density function for $\beta$, assumed to follow a $Gamma(31.96,173.71)$ distribution based on the observed data.
+- The linear relationship $C_0 = C_t + \beta t$ (blue line).
+- A vertical line at $\beta_{\text{limit}} = \frac{C_{\text{legal}} - C_t}{t}$, representing the value of $\beta$ that would make $C_0$ exactly equal to the legal limit $C_{\text{legal}} = 0.47 g/kg$.
+
+This graphical presentation effectively communicates two key ideas:
+
+1. The uncertainty surrounding the elimination rate $\beta$, as represented by its fitted probability distribution; and
+
+2. The degree of confidence that the individual’s true $C_0$ was above or below the legal threshold.
+
+All $\beta$ values to the right of the point $(\beta_{\text{limit}}, C_{\text{legal}})$ represent plausible elimination rates which, if true, would imply that the individual was over the legal limit. The proportion of the red shaded area under the curve quantifies this probability directly - providing an intuitive visual link between statistical uncertainty and the forensic question of interest.
+
+```{r echo = FALSE, message = FALSE}
 
 # Parameters
 gamma_shape <- 31.9538
-gamma_rate <- 173.7079
+gamma_rate  <- 173.7079
 
-# Compute 2.5th and 97.5th percentiles of beta
+# Quantiles for beta
 beta_q025 <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
 beta_q975 <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
 
-# Current concentration
+# Case-specific parameters
 C_t <- 0.15
 t <- 2
+C_legal <- 0.47
 
-# Legal limit for C0
-C_legal <- 0.47        
+# Derived beta that yields legal limit for C0
+beta_limit <- (C_legal - C_t) / t
 
-# Derived beta that would reach legal limit
-beta_limit <- (C_legal - C_t)/t
-
-# Define range of beta
-# beta <- seq(0, 0.5, length.out = 1000)
+# Sequence of beta values
 beta <- seq(beta_q025, beta_q975, length.out = 1000)
 
-# Calculate C0
+# Corresponding C0 values
 C0 <- C_t + beta * t
 
 # Gamma PDF for beta
@@ -964,29 +972,50 @@ pdf_beta <- dgamma(beta, shape = gamma_shape, rate = gamma_rate)
 # Plot C0 vs beta
 plot(beta, C0, type = "l", lwd = 2, col = "blue",
      xlab = expression(beta), ylab = expression(C[0]),
-     main = expression(paste(C[0], " vs ", beta)))
+     main = expression(paste("BAC at C_0 vs Elimination Rate (", beta, ")")))
 
-# Add vertical line at derived beta_limit
+# Add horizontal line for legal limit on C0 scale
+abline(h = C_legal, col = "darkgreen", lwd = 2, lty = 2)
+
+# Add vertical line at beta corresponding to legal limit
 abline(v = beta_limit, col = "darkgreen", lwd = 2, lty = 2)
 
-# Shading for beta values that make C0 > C_legal
-beta_shade <- beta[beta > beta_limit]
-C0_shade <- C0[beta > beta_limit]
+# Add marker for (beta_limit, C0 = 0.47)
+points(beta_limit, C_legal, pch = 19, col = "darkgreen", cex = 1.5)
+text(beta_limit, C_legal - 0.015, labels = expression(paste("(", beta[limit], ", ", C[legal], ")")), 
+     pos = 4, col = "darkgreen")
 
-polygon(c(beta_shade, rev(beta_shade)),
-        c(rep(min(C0), length(beta_shade)), rev(C0_shade)),
+# --- Overlay PDF curve (secondary y-axis) ---
+par(new = TRUE)
+plot(beta, pdf_beta, type = "n", axes = FALSE, xlab = "", ylab = "", ylim = c(0, max(pdf_beta)))
+
+# Shade area under the PDF curve for beta > beta_limit
+shade_idx <- beta >= beta_limit
+polygon(c(beta[shade_idx], rev(beta[shade_idx])),
+        c(pdf_beta[shade_idx], rep(0, sum(shade_idx))),
         col = rgb(1, 0, 0, 0.3), border = NA)
 
-# Add Gamma PDF on secondary y-axis
-par(new = TRUE)
-plot(beta, pdf_beta, type = "l", lwd = 2, col = "red",
-     axes = FALSE, xlab = "", ylab = "")
-axis(side = 4, col = "red", col.axis = "red")
-mtext("Density", side = 4, line = 3, col = "red")
+# Draw the full PDF line
+lines(beta, pdf_beta, col = "red", lwd = 2)
+
+# # Add secondary axis for density
+# axis(side = 4, col = "red", col.axis = "red")
+# mtext("Density of β", side = 4, line = 3, col = "red")
+
+# Add legend
+legend("topleft",
+       legend = c(expression(C[0] == C[t] + beta*t),
+                  expression("Legal limit"),
+                  expression("P(C"[0]*"> limit)")),
+       col = c("blue", "darkgreen", "red"),
+       lwd = c(2, 2, NA),
+       pch = c(NA, NA, 15),
+       pt.cex = 1.5,
+       bty = "n",
+       cex = 0.9,
+       fill = c(NA, NA, rgb(1,0,0,0.3)))
 
 ```
-
-Quantile of whole distribution of y\|x, instead of quantile of expectation of y\|x.
 
 \newpage
 
