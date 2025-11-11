@@ -592,7 +592,7 @@ $$
 # --- linear modelling beta 60 attempt ---
 
 # model incorporating all characteristics
-lm_model <- lm(beta ~ weight + age + height + sex, data = data)
+lm_model <- lm(beta ~ weight + height + sex, data = data)
 
 # Residual plots
 par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 2), cex = 2)
@@ -637,7 +637,7 @@ We get the following residual graphs.
 
 # Try modelling square root of beta (residual plots indicate a slight quadratic mean-variance relationship)
 
-sqrt_lm_model <- lm(sqrt(beta) ~ weight + age + height + sex, data = data)
+sqrt_lm_model <- lm(sqrt(beta) ~ weight + height + sex, data = data)
 
 # Residual plots
 par(mfrow = c(2, 2), mar = c(4.5, 4.5, 3, 2), cex = 2)
@@ -659,37 +659,81 @@ The biggest issue with the linear model above for use in our project is that it'
 
 ```{r comparing_rq, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
-# Create predicted values
-pred_data <- data
+# fit models
+lm_model <- lm(beta ~ weight + height + sex, data = data)
+rq_model <- rq(beta ~ weight + height + sex, data = data, tau = 0.025)
 
-# quantiles for lm
+# predictions for linear model
+pred_int <- predict(lm_model, newdata = data, interval = "prediction", level = 0.95)
+
+# create df for comparing predicted vs actual
+pred_data <- data %>%
+  mutate(
+    lm_pred_mean = pred_int[, "fit"],   # mean OLS prediction
+    lm_pred_lwr  = pred_int[, "lwr"],   # 2.5% prediction interval (lower)
+    lm_pred_upr  = pred_int[, "upr"]    # 97.5% prediction interval (upper)
+  )
+
+# add empirical 2.5% quantile of residuals to find 2.5% quantile of linear model
 resid_q025 <- quantile(residuals(lm_model), probs = 0.025)
-pred_data$lm_pred <- predict(lm_model)
-pred_data$lm_q025 <- pred_data$lm_pred + resid_q025
+pred_data <- pred_data %>%
+  mutate(lm_q025 = lm_pred_mean + resid_q025)
 
-# using quantile regression instead
-rq_model <- rq(beta ~ weight + age + height + sex, data = data, tau = 0.025)
-pred_data$rq_pred <- predict(rq_model)
+# quantile regression predictions
+pred_data$rq_pred <- predict(rq_model, newdata = data)
 
-# Combine into a long format for ggplot
+# reshape
 plot_data <- pred_data %>%
-  tidyr::pivot_longer(cols = c(lm_q025, rq_pred),
-                      names_to = "model",
-                      values_to = "predicted_beta")
+  pivot_longer(
+    cols = c(lm_pred_mean, lm_q025, rq_pred),
+    names_to = "model",
+    values_to = "predicted_beta"
+  )
 
-# Plot
-quantile_v_lm_plot <- ggplot(plot_data, aes(x = beta, y = predicted_beta, color = model)) +
-  geom_point( size = 3) +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(
-    title = expression("Comparing Models for the 2.5% Quantile for "*beta),
-    x = expression("Actual "*beta),
-    y = expression("Predicted "*beta),
-    color = "Model Type"
+# plot
+quantile_v_lm_plot <- ggplot() +
+  # 95% prediction interval shaded area (between lm_pred_lwr and lm_pred_upr)
+  geom_ribbon(
+    data = pred_data,
+    aes(x = beta, ymin = lm_pred_lwr, ymax = lm_pred_upr),
+    fill = "lightblue", alpha = 0.25
   ) +
-  scale_color_manual(values = c("lm_q025" = "orange", "rq_pred" = "darkred"),
-                     labels = c("Linear Regression", "Quantile Regression"))
+  # Points for models (mean LM, quantile LM, quantile regression)
+  geom_point(
+    data = plot_data,
+    aes(x = beta, y = predicted_beta, color = model),
+    alpha = 0.6, size = 2
+  ) +
+  # Linear trend lines for clarity
+  geom_smooth(
+    data = plot_data,
+    aes(x = beta, y = predicted_beta, color = model),
+    method = lm, se = TRUE, linewidth = 1
+  ) +
+  # 1:1 line
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  # Manual colors and labels
+  scale_color_manual(
+    values = c(
+      "lm_pred_mean" = "blue",
+      "lm_q025"      = "gold",
+      "rq_pred"      = "darkred"
+    ),
+    labels = c(
+      "lm_pred_mean" = "Linear Model (Mean Prediction)",
+      "lm_q025"      = "2.5% Quantile of Linear Model Residuals",
+      "rq_pred"      = "Quantile Regression (τ = 0.025)"
+    )
+  ) +
+  # Labels and theme
+  labs(
+    title = expression("Actual vs Predicted " * beta * " with 95% Prediction Interval"),
+    x = expression("Actual " * beta),
+    y = expression("Predicted " * beta),
+    color = "Model Type"
+  )
 
+# display
 quantile_v_lm_plot
 ```
 
@@ -783,6 +827,7 @@ C0_sd   <- sd(C0_samples)
 # Create summary table
 results <- data.frame(
   Statistic = c(
+    "Interval length",
     "Lower 95% bound for C₀",
     "Upper 95% bound for C₀",
     "Analytical P(C₀ > 0.47 g/kg)",
@@ -791,6 +836,7 @@ results <- data.frame(
     "SD of simulated C₀"
   ),
   Value = c(
+    round(C0_upper - C0_lower, 3),
     round(C0_lower, 3),
     round(C0_upper, 3),
     round(p_over_limit, 3),
@@ -809,6 +855,68 @@ kable(
 )
 ```
 
+Quantile regression produces a 2.5% and 97.5% quantile for each possible combination of explanatory variables, so we have to interpret a confidence interval of possible elimination rates differently here. To give an indication of the range of beta under quantile regression, we can look at the mean at each quantile.
+
+```{r, echo = FALSE, message = FALSE}
+# Given parameters
+Ct <- 0.15   # measured concentration (g/kg)
+t  <- 2      # time since arrest (hours)
+
+# Fit quantile regression models for beta
+rq_lower  <- rq(beta ~ weight + age + sex, data = data, tau = 0.025)
+rq_upper  <- rq(beta ~ weight + age + sex, data = data, tau = 0.975)
+
+# Predict quantile values of beta for each observation
+beta_q025 = predict(rq_lower,  newdata = data)
+beta_q975 = predict(rq_upper,  newdata = data)
+
+# Compute 95% interval for C0 for each observation
+C0_lower = Ct + mean(beta_q025) * t
+C0_upper = Ct + mean(beta_q975) * t
+C0_interval <- c(C0_lower, C0_upper)
+
+# Monte Carlo-style resampling from the quantile predictions
+set.seed(123)
+n_sim <- 10000
+# approximate sampling of beta between 2.5% and 97.5% quantiles
+beta_samples <- runif(n_sim, min = mean(beta_q025), max = mean(beta_q975))
+C0_samples <- Ct + beta_samples * t
+
+# Probability that C0 exceeded the legal limit x
+p_over_limit_sim <- mean(C0_samples > x)
+
+# Summaries
+C0_mean <- mean(C0_samples)
+C0_sd   <- sd(C0_samples)
+
+# Create summary table
+results <- data.frame(
+  Statistic = c(
+    "Interval Length",
+    "Lower 95% bound for C₀",
+    "Upper 95% bound for C₀",
+    "Simulated P(C₀ > 0.47 g/kg)",
+    "Mean of simulated C₀",
+    "SD of simulated C₀"
+  ),
+  Value = c(
+    round(C0_upper - C0_lower, 3),
+    round(C0_lower, 3),
+    round(C0_upper, 3),
+    round(p_over_limit_sim, 3),
+    round(C0_mean, 3),
+    round(C0_sd, 3)
+  )
+)
+
+kable(
+  results,
+  caption = "Summary of Back-Calculated Blood-Alcohol Concentration using Quantile Regression (C₀)",
+  col.names = c("Statistic", "Value"),
+  align = c("l", "c"),
+  format = "markdown"
+)
+```
 For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arrest and the fitted Gamma model for the elimination rate, the estimated 95% prediction/credible interval for the blood alcohol concentration at the time of driving is $C_0 \in (0.40,0.66)g/kg$. The probability that the true $C_0$ exceeded the legal limit of 0.47 g/kg is approximately 76%.
 
 Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently.
