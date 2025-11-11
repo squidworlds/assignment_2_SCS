@@ -222,7 +222,7 @@ Due to the clear relationships between $\beta$ and characteristics of the tested
 
 ### Finding Distribution Method
 
-An issue with creating a distribution from the $\beta$ elimination rate values given is that we only have 100 data points. Therefore the distribution is very dependent on not many values. We propose instead investigating if $\beta$ follows a standard distribution. First, we will examined the general spread of $\beta$ values given in the following histogram.
+An issue with creating a distribution from the $\beta$ elimination rate values given is that we only have 100 data points. Therefore the distribution is very dependent on not many values. We propose instead investigating if $\beta$ follows a standard distribution. First, we will examined the general spread of $\beta$ values given in the following histogram, where the mean, 2.5th, and 97.5th quantiles are indicated in red.
 
 ```{r density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -235,16 +235,16 @@ density_plot <- ggplot(data, aes(x = beta)) +
                size = 1) +
   geom_vline(aes(xintercept=mean(beta)),
              linetype = "dashed",
-             color = "navy",
-             size = 1) +
+             color = "red",
+             size = 2) +
   geom_vline(aes(xintercept=quantile(beta, 0.025)),
              linetype = "dotted",
-             color = "navy",
-             size = 1) +
+             color = "red",
+             size = 2) +
   geom_vline(aes(xintercept=quantile(beta, 0.975)),
              linetype = "dotted",
-             color = "navy",
-             size = 1) +
+             color = "red",
+             size = 2) +
   labs(x = expression(""*beta), y = "Density", title = expression("Distribution of "*beta))
 
 density_plot
@@ -262,20 +262,58 @@ stats <- data %>%
     q975 = quantile(beta, 0.975)
   )
 
-# plot
-sex_density_plot <- ggplot(data, aes(x = beta, color = sex, fill = sex)) +
-  geom_histogram(aes(y = after_stat(density)),
+# helper: color mapping for male/female lines
+stats <- stats %>%
+  mutate(line_colour = ifelse(sex == "female", "red", "blue"))
+
+# custom legend labels for quantile lines
+legend_lines <- data.frame(
+  sex = c("male", "female"),
+  color = c("blue", "red"),
+  linetype = c("dotted", "dotted"),
+  label = c("97.5th quantile (male)", "97.5th quantile (female)")
+)
+
+# main plot
+sex_density_plot <- ggplot(data, aes(x = beta, fill = sex)) +
+  geom_histogram(aes(y = after_stat(density), color = sex),
                  binwidth = 0.005, alpha = 0.5, position = "identity") +
-  geom_density(size = 1, alpha = 0) +
-  geom_vline(data = stats, aes(xintercept = mean, color = sex),
-             linetype = "dashed", size = 1) +
-  geom_vline(data = stats, aes(xintercept = q025, color = sex),
-             linetype = "dotted", size = 1) +
-  geom_vline(data = stats, aes(xintercept = q975, color = sex),
-             linetype = "dotted", size = 1) +
-  scale_color_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
-  scale_fill_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
-  labs(x = expression(""*beta), y = "Density", title = expression("Distribution of "*beta*" by Sex"))
+  geom_density(aes(color = sex), size = 1, alpha = 0) +
+  
+  # mean lines (dashed, red/blue)
+  geom_vline(data = stats,
+             aes(xintercept = mean, color = line_colour, linetype = "Mean"),
+             size = 2) +
+  
+  # lower quantile (dotted)
+  geom_vline(data = stats,
+             aes(xintercept = q025, color = line_colour, linetype = "2.5th quantile"),
+             size = 2) +
+  
+  # upper quantile (dotted)
+  geom_vline(data = stats,
+             aes(xintercept = q975, color = line_colour, linetype = "97.5th quantile"),
+             size = 2) +
+  
+  # consistent manual color/fill mapping
+  scale_fill_manual(values = c("male" = "skyblue", "female" = "seagreen"),
+                    name = "Sex") +
+  scale_color_manual(
+    name = "Quantile Colour",
+    values = c("male" = "skyblue", "female" = "seagreen",
+               "red" = "red", "blue" = "blue"),
+    breaks = c("blue", "red"),
+    labels = c("male quantiles (blue)", "female quantiles (red)")
+  ) +
+  scale_linetype_manual(
+    name = "Statistic",
+    values = c("Mean" = "dashed", "2.5th quantile" = "dotted", "97.5th quantile" = "dotted")
+  ) +
+  labs(
+    x = expression(beta),
+    y = "Density",
+    title = expression("Distribution of "*beta*" by Sex")
+  )
 
 sex_density_plot
 ```
@@ -383,7 +421,7 @@ gamma_rate <- gamma_fit$estimate[[2]]
 q025 <- qgamma(0.025, gamma_shape, gamma_rate)
 ```
 
-The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847. The Density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit.
+The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847. The Density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red. .
 
 ```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
 gamma_df <- data.frame(
@@ -417,8 +455,8 @@ gamma_plot <- ggplot(data, aes(x = beta)) +
     data = stats_gamma,
     aes(xintercept = value,
         linetype = Quantile),
-    color = "navy",
-    size = 1
+    color = "red",
+    size = 2
   ) +
   scale_linetype_manual(
     values = c("q025" = "dotted", "q50" = "dashed", "q975" = "dotted"),
@@ -469,29 +507,60 @@ stats_gamma_sex <- data.frame(
 )
 
 # plot
-sex_gamma_plot <- ggplot(data, aes(x = beta, color = Sex, fill = Sex)) +
-  geom_histogram(aes(y = after_stat(density)),
-                 binwidth = 0.005, alpha = 0.5, position = "identity") +
-  geom_line(data = gamma_sex_long,
-            aes(x = x, y = density, color = Sex),
-            size = 1.2) +
+sex_gamma_plot <- ggplot(data, aes(x = beta)) +
+  # histogram with correct fill colors
+  geom_histogram(
+    aes(y = after_stat(density), fill = Sex),
+    binwidth = 0.005, alpha = 0.5, position = "identity"
+  ) +
+  
+  # gamma density curves (match fill colours)
+  geom_line(
+    data = gamma_sex_long,
+    aes(x = x, y = density, color = Sex, linetype = "Gamma density"),
+    size = 1.2
+  ) +
+  
+  # quantile lines (male = blue, female = red)
   geom_vline(
-    data = stats_gamma_sex,
-    aes(xintercept = value, color = Sex, linetype = Quantile),
-    size = 1
+    data = stats_gamma_sex %>%
+      mutate(line_colour = ifelse(Sex == "female", "red", "blue")),
+    aes(xintercept = value, color = line_colour, linetype = Quantile),
+    size = 2
   ) +
-  scale_color_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
-  scale_fill_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
+  
+  # color scales (fill = distribution colour, line = quantile/gamma)
+  scale_fill_manual(
+    values = c("male" = "skyblue", "female" = "seagreen"),
+    name = "Sex"
+  ) +
+  scale_color_manual(
+    name = "Quantile Colour",
+    values = c("male" = "skyblue", "female" = "seagreen",
+               "red" = "red", "blue" = "blue"),
+    breaks = c("skyblue", "seagreen", "blue", "red"),
+    labels = c("Male gamma curve", "Female gamma curve",
+               "Male quantiles (blue)", "Female quantiles (red)")
+  ) +
+  
+  # line type labels for quantiles
   scale_linetype_manual(
-    values = c("q025" = "dotted", "q50" = "dashed", "q975" = "dotted"),
-    labels = c("2.5%", "50%", "97.5%")
+    name = "Statistic",
+    values = c("Gamma density" = "solid",
+               "q025" = "dotted",
+               "q50"  = "dashed",
+               "q975" = "dotted"),
+    labels = c("Gamma density" = "Gamma density curve",
+               "q025" = "2.5th quantile",
+               "q50"  = "50th quantile (median)",
+               "q975" = "97.5th quantile")
   ) +
+  
   labs(
     x = expression(beta),
     y = "Density",
-    title = expression("Gamma Distributions of "*beta*" by Sex"),
-    linetype = "Quantile"
-  ) 
+    title = expression("Gamma Distributions of "*beta*" by Sex")
+  )
 
 sex_gamma_plot
 ```
@@ -917,10 +986,28 @@ data$Vd <- data$A/(data$Co *data$weight)
 #quantile(data$Vd, probs = c(0.025, 0.5, 0.975))
 
 # histogram of Vd
-ggplot(data, aes(x = Vd)) +
-  geom_histogram(bins = 20, colour = "navy", fill = "steelblue") +
-  labs(title = "Figure 5: Histogram of Volume of Distribution (Vd)",
-       x = "Vd (L/kg)", y = "Count")
+density_plot <- ggplot(data, aes(x = Vd)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005,
+                 fill = "steelblue",
+                 alpha = 0.55) +
+  geom_density(color = "navy", 
+               size = 1) +
+  geom_vline(aes(xintercept=mean(Vd)),
+             linetype = "dashed",
+             color = "red",
+             size = 2) +
+  geom_vline(aes(xintercept=quantile(Vd, 0.025)),
+             linetype = "dotted",
+             color = "red",
+             size = 2) +
+  geom_vline(aes(xintercept=quantile(Vd, 0.975)),
+             linetype = "dotted",
+             color = "red",
+             size = 2) +
+  labs(x = "Vd (L/kg)", y = "Density", title = expression("Distribution of Vd"))
+
+density_plot
 ```
 
 ```{r task_3_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
@@ -967,7 +1054,7 @@ sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
   )
 ```
 
-From Figure 5, we can see that the majority of $V_d$ values lie around 0.65, in a roughly normally distributed pattern. There appears to be one particular outlier, with a $V_d$ value of around 1.2, which may be worth investigating further.
+From Figure 5, we can see that the majority of $V_d$ values lie around 0.65, in a roughly normally distributed pattern, with the mean, 2.5th, and 97.5th quantiles highlighted in red. There appears to be one particular outlier, with a $V_d$ value of around 1.2, which may be worth investigating further.
 
 Figures 6-9 highlight the following relationships:
 
@@ -1089,7 +1176,6 @@ kable(results_compare, align = "lccc",
 The empirical joint $C_t$ distribution represents the upper and lower bounds of plausible blood alcohol concentrations for an individual with weight 70kg, who consumed the mean grams of alcohol from the sample and was tested 2 hours later.
 
 As seen from the table above this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
-
 
 \newpage
 
