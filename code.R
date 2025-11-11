@@ -1,9 +1,20 @@
-library(tidyverse)
-library(readxl)
-library(fitdistrplus)
-library(viridis)
-library(dplyr)
-library(quantreg)
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(afex))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(viridis))
+suppressPackageStartupMessages(library(gridExtra))
+suppressPackageStartupMessages(library(patchwork))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(cv))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(fitdistrplus))
+suppressPackageStartupMessages(library(readxl))
+suppressPackageStartupMessages(library(quantreg))
+suppressPackageStartupMessages(library(purrr))
+suppressPackageStartupMessages(library(broom))
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TASK 1  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -19,23 +30,23 @@ data$beta <- -data$beta60
 
 # beta vs weight
 weight_plot <- ggplot(data, aes(x=weight, y=beta, colour = sex)) +
-  geom_point() +
+  geom_point(size = 3) +
   geom_smooth(method="lm", color="navy") +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   labs(title="Figure 1: β vs Weight", x="Weight (kg)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs height
 height_plot <- ggplot(data, aes(x=height, y=beta, colour = sex)) +
-  geom_point() +
+  geom_point(size = 3) +
   geom_smooth(method="lm", color="navy") +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  labs(title="Figure 2: β vs Height", x="Weight (cm)", y="β Elimination Rate (g/kg/h)")
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
+  labs(title="Figure 2: β vs Height", x="Height (cm)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs age
 age_plot <- ggplot(data, aes(x=age, y=beta, colour = sex)) +
-  geom_point() +
+  geom_point(size = 3) +
   geom_smooth(method="lm", color="navy") +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   labs(title="Figure 3: β vs Age", x="Age (years)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs gender
@@ -43,14 +54,13 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
                              fill = sex)) +
   geom_violin(alpha = 0.8) +
   geom_boxplot(width = 0.2, color = "navy", alpha = 0.7) +
-  scale_fill_manual(values = c("lightblue", "steelblue")) +
+  scale_fill_manual(values = c("seagreen", "skyblue")) +
   labs(
     title = "Figure 4: β vs Gender",
     x = "Gender",
     y = "β Elimination Rate (g/kg/h)"
   ) +
-  guides(fill = "none") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  guides(fill = "none")
 
 # Compute correlation and p-value between beta and each characteristic.
 corr_table <- data %>%
@@ -72,25 +82,26 @@ corr_table <- data %>%
 density_plot <- ggplot(data, aes(x = beta)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005,
-                 fill = "navy",
+                 fill = "steelblue",
                  alpha = 0.55) +
   geom_density(color = "navy", 
                size = 1) +
   geom_vline(aes(xintercept=mean(beta)),
              linetype = "dashed",
-             color = "navy",
-             size = 1) +
+             color = "red",
+             size = 2) +
   geom_vline(aes(xintercept=quantile(beta, 0.025)),
              linetype = "dotted",
-             color = "navy",
-             size = 1) +
+             color = "red",
+             size = 2) +
   geom_vline(aes(xintercept=quantile(beta, 0.975)),
              linetype = "dotted",
-             color = "navy",
-             size = 1) +
-  labs(x = expression(""*beta), y = "Density", title = expression("Distribution of "*beta))
+             color = "red",
+             size = 2) +
+  labs(x = expression(""*beta), y = "Density",
+       title = expression("Distribution of "*beta))
 
-# compute group statistics by sex
+# compute group statistics
 stats <- data %>%
   group_by(sex) %>%
   summarize(
@@ -99,20 +110,58 @@ stats <- data %>%
     q975 = quantile(beta, 0.975)
   )
 
-# beta density plot (by sex)
-sex_density_plot <- ggplot(data, aes(x = beta, color = sex, fill = sex)) +
-  geom_histogram(aes(y = after_stat(density)),
-                 binwidth = 0.005, alpha = 0.4, position = "identity") +
-  geom_density(size = 1, alpha = 0) +
-  geom_vline(data = stats, aes(xintercept = mean, color = sex),
-             linetype = "dashed", size = 1) +
-  geom_vline(data = stats, aes(xintercept = q025, color = sex),
-             linetype = "dotted", size = 1) +
-  geom_vline(data = stats, aes(xintercept = q975, color = sex),
-             linetype = "dotted", size = 1) +
-  scale_color_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  scale_fill_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  labs(x = expression(""*beta), y = "Density", title = expression("Distribution of "*beta*" by Sex"))
+# helper: color mapping for male/female lines
+stats <- stats %>%
+  mutate(line_colour = ifelse(sex == "female", "red", "blue"))
+
+# custom legend labels for quantile lines
+legend_lines <- data.frame(
+  sex = c("male", "female"),
+  color = c("blue", "red"),
+  linetype = c("dotted", "dotted"),
+  label = c("97.5th quantile (male)", "97.5th quantile (female)")
+)
+
+# main plot
+sex_density_plot <- ggplot(data, aes(x = beta, fill = sex)) +
+  geom_histogram(aes(y = after_stat(density), color = sex),
+                 binwidth = 0.005, alpha = 0.5, position = "identity") +
+  geom_density(aes(color = sex), size = 1, alpha = 0) +
+  
+  # mean lines (dashed, red/blue)
+  geom_vline(data = stats,
+             aes(xintercept = mean, color = line_colour, linetype = "Mean"),
+             size = 2) +
+  
+  # lower quantile (dotted)
+  geom_vline(data = stats,
+             aes(xintercept = q025, color = line_colour, linetype = "2.5th quantile"),
+             size = 2) +
+  
+  # upper quantile (dotted)
+  geom_vline(data = stats,
+             aes(xintercept = q975, color = line_colour, linetype = "97.5th quantile"),
+             size = 2) +
+  
+  # consistent manual color/fill mapping
+  scale_fill_manual(values = c("male" = "skyblue", "female" = "seagreen"),
+                    name = "Sex") +
+  scale_color_manual(
+    name = "Quantile Colour",
+    values = c("male" = "skyblue", "female" = "seagreen",
+               "red" = "red", "blue" = "blue"),
+    breaks = c("blue", "red"),
+    labels = c("male quantiles (blue)", "female quantiles (red)")
+  ) +
+  scale_linetype_manual(
+    name = "Statistic",
+    values = c("Mean" = "dashed", "2.5th quantile" = "dotted", "97.5th quantile" = "dotted")
+  ) +
+  labs(
+    x = expression(beta),
+    y = "Density",
+    title = expression("Distribution of "*beta*" by Sex")
+  )
 
 # Residual plots of fitted distributions
 normal_fit <- fitdist(data$beta, distr = "norm", method = "mle")
@@ -134,56 +183,41 @@ plot(gamma_fit)
 gamma_shape <- gamma_fit$estimate[[1]]
 gamma_rate <- gamma_fit$estimate[[2]]
 q025 <- -qgamma(0.975, gamma_shape, gamma_rate)
-q025
 
-# modelling as gamma by sex
-m_data <- data %>% filter(Sex == "male")
-m_gamma_fit <- fitdist(-m_data$beta60, distr = "gamma", method = "mle")
-m_gamma_shape <- m_gamma_fit$estimate[[1]]
-m_gamma_rate <- m_gamma_fit$estimate[[2]]
-m_q025 <- -qgamma(0.975, m_gamma_shape, m_gamma_rate)
-
-f_data <- data %>% filter(Sex == "female")
-f_gamma_fit <- fitdist(-f_data$beta60, distr = "gamma", method = "mle")
-f_gamma_shape <- f_gamma_fit$estimate[[1]]
-f_gamma_rate <- f_gamma_fit$estimate[[2]]
-f_q025 <- -qgamma(0.975, f_gamma_shape, f_gamma_rate)
-
-# prepare data frame by sex for plotting.
-gamma_sex_df <- data.frame(
+gamma_df <- data.frame(
   x = data$beta,
-  male_density   = dgamma(data$beta, shape = m_gamma_shape, rate = m_gamma_rate),
-  female_density = dgamma(data$beta, shape = f_gamma_shape, rate = f_gamma_rate)
+  density = dgamma(data$beta, shape = gamma_shape, rate = gamma_rate)
 )
 
-# convert dataframe to long format.
-gamma_long <- gamma_sex_df %>%
-  pivot_longer(cols = c(male_density, female_density),
-               names_to = "Sex",
-               values_to = "density") %>%
-  mutate(Sex = ifelse(Sex == "male_density", "male", "female"))
+quantiles <- qgamma(c(0.025, 0.5, 0.975), gamma_shape, gamma_rate)
 
-# extract gamma quantile statistics by sex.
 stats_gamma <- data.frame(
-  Sex = rep(c("male", "female"), each = 3),
-  Quantile = rep(c("q025", "q50", "q975"), times = 2),
-  value = c(m_quantiles, f_quantiles)
+  Quantile = rep(c("q025", "q50", "q975")),
+  value = quantiles
 )
 
-# plot the gamma distribution by sex.
-sex_gamma_plot <- ggplot(data, aes(x = beta, color = Sex, fill = Sex)) +
-  geom_histogram(aes(y = after_stat(density)),
-                 binwidth = 0.005, alpha = 0.4, position = "identity") +
-  geom_line(data = gamma_long,
-            aes(x = x, y = density, color = Sex),
-            size = 1.2) +
+# plot gamma fit for beta.
+gamma_plot <- ggplot(data, aes(x = beta)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    binwidth = 0.005,
+    fill = "steelblue",
+    alpha = 0.5,
+    position = "identity") +
+  geom_line(
+    data = gamma_df,
+    aes(x = x,
+        y = density
+    ),
+    color = "navy",
+    size = 1.2) +
   geom_vline(
     data = stats_gamma,
-    aes(xintercept = value, color = Sex, linetype = Quantile),
-    size = 1
+    aes(xintercept = value,
+        linetype = Quantile),
+    color = "red",
+    size = 2
   ) +
-  scale_color_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  scale_fill_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
   scale_linetype_manual(
     values = c("q025" = "dotted", "q50" = "dashed", "q975" = "dotted"),
     labels = c("2.5%", "50%", "97.5%")
@@ -191,16 +225,97 @@ sex_gamma_plot <- ggplot(data, aes(x = beta, color = Sex, fill = Sex)) +
   labs(
     x = expression(beta),
     y = "Density",
-    title = expression("Gamma Distributions of "*beta*" by Sex"),
+    title = expression("Gamma Distribution of "*beta),
     linetype = "Quantile"
+  ) 
+
+m_data <- data %>% filter(Sex == "male")
+m_gamma_fit <- fitdist(m_data$beta, distr = "gamma", method = "mle")
+m_gamma_shape <- m_gamma_fit$estimate[[1]]
+m_gamma_rate <- m_gamma_fit$estimate[[2]]
+m_quantiles <- qgamma(c(0.025, 0.5, 0.975), m_gamma_shape, m_gamma_rate)
+
+f_data <- data %>% filter(Sex == "female")
+f_gamma_fit <- fitdist(f_data$beta, distr = "gamma", method = "mle")
+f_gamma_shape <- f_gamma_fit$estimate[[1]]
+f_gamma_rate <- f_gamma_fit$estimate[[2]]
+f_quantiles <- qgamma(c(0.025, 0.5, 0.975), f_gamma_shape, f_gamma_rate)
+
+gamma_sex_df <- data.frame(
+  x = data$beta,
+  male_density   = dgamma(data$beta, shape = m_gamma_shape, rate = m_gamma_rate),
+  female_density = dgamma(data$beta, shape = f_gamma_shape, rate = f_gamma_rate)
+)
+
+gamma_sex_long <- gamma_sex_df %>%
+  pivot_longer(cols = c(male_density, female_density),
+               names_to = "Sex",
+               values_to = "density") %>%
+  mutate(Sex = ifelse(Sex == "male_density", "male", "female"))
+
+stats_gamma_sex <- data.frame(
+  Sex = rep(c("male", "female"), each = 3),
+  Quantile = rep(c("q025", "q50", "q975"), times = 2),
+  value = c(m_quantiles, f_quantiles)
+)
+
+# gamma fit of beta by sex
+sex_gamma_plot <- ggplot(data, aes(x = beta)) +
+  # histogram with correct fill colors
+  geom_histogram(
+    aes(y = after_stat(density), fill = Sex),
+    binwidth = 0.005, alpha = 0.5, position = "identity"
   ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
-    axis.title = element_text(size = 14, face = "bold")
+  
+  # gamma density curves (match fill colours)
+  geom_line(
+    data = gamma_sex_long,
+    aes(x = x, y = density, color = Sex, linetype = "Gamma density"),
+    size = 1.2
+  ) +
+  
+  # quantile lines (male = blue, female = red)
+  geom_vline(
+    data = stats_gamma_sex %>%
+      mutate(line_colour = ifelse(Sex == "female", "red", "blue")),
+    aes(xintercept = value, color = line_colour, linetype = Quantile),
+    size = 2
+  ) +
+  
+  # color scales (fill = distribution colour, line = quantile/gamma)
+  scale_fill_manual(
+    values = c("male" = "skyblue", "female" = "seagreen"),
+    name = "Sex"
+  ) +
+  scale_color_manual(
+    name = "Quantile Colour",
+    values = c("male" = "skyblue", "female" = "seagreen",
+               "red" = "red", "blue" = "blue"),
+    breaks = c("skyblue", "seagreen", "blue", "red"),
+    labels = c("Male gamma curve", "Female gamma curve",
+               "Male quantiles (blue)", "Female quantiles (red)")
+  ) +
+  
+  # line type labels for quantiles
+  scale_linetype_manual(
+    name = "Statistic",
+    values = c("Gamma density" = "solid",
+               "q025" = "dotted",
+               "q50"  = "dashed",
+               "q975" = "dotted"),
+    labels = c("Gamma density" = "Gamma density curve",
+               "q025" = "2.5th quantile",
+               "q50"  = "50th quantile (median)",
+               "q975" = "97.5th quantile")
+  ) +
+  
+  labs(
+    x = expression(beta),
+    y = "Density",
+    title = expression("Gamma Distributions of "*beta*" by Sex")
   )
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%% MODELLING BETA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%% LINEAR MODELLING BETA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # --- linear modelling beta 60 attempt ---
 
@@ -240,7 +355,7 @@ plot_data <- pred_data %>%
 
 # Plot
 quantile_v_lm_plot <- ggplot(plot_data, aes(x = beta, y = predicted_beta, color = model)) +
-  geom_point(alpha = 0.6) +
+  geom_point( size = 3) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
     title = expression("Comparing Models for the 2.5% Quantile for "*beta),
@@ -248,10 +363,8 @@ quantile_v_lm_plot <- ggplot(plot_data, aes(x = beta, y = predicted_beta, color 
     y = expression("Predicted "*beta),
     color = "Model Type"
   ) +
-  scale_color_manual(values = c("lm_q025" = "firebrick", "rq_pred" = "forestgreen"),
+  scale_color_manual(values = c("lm_q025" = "orange", "rq_pred" = "darkred"),
                      labels = c("Linear Regression", "Quantile Regression"))
-
-
 
 # compute group statistics
 stats <- data %>%
@@ -261,29 +374,6 @@ stats <- data %>%
     q025 = quantile(beta60, 0.025),
     q975 = quantile(beta60, 0.975)
   )
-
-stats
-
-# plot
-sex_density_plot <- ggplot(data, aes(x = beta60, color = Sex, fill = Sex)) +
-  geom_histogram(aes(y = after_stat(density)),
-                 binwidth = 0.005, alpha = 0.55, position = "identity") +
-  geom_density(size = 1, alpha= 0) +
-  geom_vline(data = stats, aes(xintercept = mean, color = Sex),
-             linetype = "dashed", size = 1) +
-  geom_vline(data = stats, aes(xintercept = q025, color = Sex),
-             linetype = "dotted", size = 1) +
-  geom_vline(data = stats, aes(xintercept = q975, color = Sex),
-             linetype = "dotted", size = 1) +
-  theme_minimal() +
-  labs(x = "beta_60", y = "Density", title = "Distribution of beta_60 by Sex")
-
-sex_density_plot
-
-# quantile regression to increase accuracy of quantile prediction
-library(quantreg)
-rqfit <- rq(sqrt((-1)*beta60) ~ weight + age + height + sex, data = data, tau = 0.025)
-summary(rqfit)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TASK 2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -330,6 +420,111 @@ results_table <- tibble(
   Upper_97.5 = c(C0_pop[3], C0_gamma[3], C0_gamma_m[3], C0_gamma_f[3], C0_lm[3], C0_rq[3])
 )
 
+# %%%%%%%%%%%%%%%%%%%%%%%%%% ALTERNATE RESULT APPROACHES %%%%%%%%%%%%%%%%%%%%
+
+# Given parameters
+Ct <- 0.15         # measured concentration (g/kg)
+t  <- 2            # time since arrest (hours)
+x  <- 0.47         # legal limit (g/kg)
+
+# Fitted Gamma parameters for beta
+gamma_shape <- 31.9538
+gamma_rate  <- 173.7079
+
+# 1. Compute 2.5th and 97.5th percentiles of beta
+beta_q025 <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
+beta_q975 <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
+
+# 2. Compute 95% interval for C0
+C0_lower <- Ct + beta_q025 * t
+C0_upper <- Ct + beta_q975 * t
+C0_interval <- c(C0_lower, C0_upper)
+
+# 3. Compute probability that true C0 exceeded legal limit
+beta_threshold <- (x - Ct) / t
+p_over_limit <- 1 - pgamma(beta_threshold, shape = gamma_shape, rate = gamma_rate)
+
+# 4. Monte Carlo simulation
+set.seed(123)
+n_sim <- 1000
+beta_samples <- rgamma(n_sim, shape = gamma_shape, rate = gamma_rate)
+C0_samples <- Ct + beta_samples * t
+p_over_limit_sim <- mean(C0_samples > x)
+
+# Summaries
+C0_mean <- mean(C0_samples)
+C0_sd   <- sd(C0_samples)
+
+# Create summary table
+results <- data.frame(
+  Statistic = c(
+    "Lower 95% bound for C₀",
+    "Upper 95% bound for C₀",
+    "Analytical P(C₀ > 0.47 g/kg)",
+    "Simulated P(C₀ > 0.47 g/kg)",
+    "Mean of simulated C₀",
+    "SD of simulated C₀"
+  ),
+  Value = c(
+    round(C0_lower, 3),
+    round(C0_upper, 3),
+    round(p_over_limit, 3),
+    round(p_over_limit_sim, 3),
+    round(C0_mean, 3),
+    round(C0_sd, 3)
+  )
+)
+
+# Parameters
+gamma_shape <- 31.9538
+gamma_rate <- 173.7079
+
+# Compute 2.5th and 97.5th percentiles of beta
+beta_q025 <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
+beta_q975 <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
+
+# Current concentration
+C_t <- 0.15
+t <- 2
+
+# Legal limit for C0
+C_legal <- 0.47        
+
+# Derived beta that would reach legal limit
+beta_limit <- (C_legal - C_t)/t
+
+# Define range of beta
+# beta <- seq(0, 0.5, length.out = 1000)
+beta <- seq(beta_q025, beta_q975, length.out = 1000)
+
+# Calculate C0
+C0 <- C_t + beta * t
+
+# Gamma PDF for beta
+pdf_beta <- dgamma(beta, shape = gamma_shape, rate = gamma_rate)
+
+# Plot C0 vs beta
+plot(beta, C0, type = "l", lwd = 2, col = "blue",
+     xlab = expression(beta), ylab = expression(C[0]),
+     main = expression(paste(C[0], " vs ", beta)))
+
+# Add vertical line at derived beta_limit
+abline(v = beta_limit, col = "darkgreen", lwd = 2, lty = 2)
+
+# Shading for beta values that make C0 > C_legal
+beta_shade <- beta[beta > beta_limit]
+C0_shade <- C0[beta > beta_limit]
+
+polygon(c(beta_shade, rev(beta_shade)),
+        c(rep(min(C0), length(beta_shade)), rev(C0_shade)),
+        col = rgb(1, 0, 0, 0.3), border = NA)
+
+# Add Gamma PDF on secondary y-axis
+par(new = TRUE)
+plot(beta, pdf_beta, type = "l", lwd = 2, col = "red",
+     axes = FALSE, xlab = "", ylab = "")
+axis(side = 4, col = "red", col.axis = "red")
+mtext("Density", side = 4, line = 3, col = "red")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TASK 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -345,53 +540,60 @@ quantile(data$Vd, probs = c(0.025, 0.5, 0.975))
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Vd EDA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # histogram of Vd
-ggplot(data, aes(x = Vd)) +
-  geom_histogram(bins = 20, colour = "navy", fill = "steelblue") +
-  labs(title = "Distribution of Volume of Distribution (Vd)",
-       x = "Vd (L/kg)", y = "Count")
+density_plot <- ggplot(data, aes(x = Vd)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005,
+                 fill = "steelblue",
+                 alpha = 0.55) +
+  geom_density(color = "navy", 
+               size = 1) +
+  geom_vline(aes(xintercept=mean(Vd)),
+             linetype = "dashed",
+             color = "red",
+             size = 2) +
+  geom_vline(aes(xintercept=quantile(Vd, 0.025)),
+             linetype = "dotted",
+             color = "red",
+             size = 2) +
+  geom_vline(aes(xintercept=quantile(Vd, 0.975)),
+             linetype = "dotted",
+             color = "red",
+             size = 2) +
+  labs(x = "Vd (L/kg)", y = "Density", title = expression("Distribution of Vd"))
 
 # Vd vs weight
 weight_plot2 <- ggplot(data, aes(x = weight, y = Vd, colour = sex)) +
-  geom_point() +
+  geom_point(size = 3) +
   geom_smooth(method = "lm", colour = "navy") +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
-  labs(title = "Figure 5: Vd vs Weight", x = "Weight (kg)", y = "Vd (L/kg)")
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
+  labs(title = "Figure 6: Vd vs Weight", x = "Weight (kg)", y = "Vd (L/kg)")
 
 # Vd vs height
 height_plot2 <- ggplot(data, aes(x = height, y = Vd, colour = sex)) +
-  geom_point() +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  geom_point(size = 3) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   geom_smooth(method = "lm", colour = "navy") +
-  labs(title = "Figure 6: Vd vs Height", x = "Height (cm)", y = "Vd (L/kg)")
+  labs(title = "Figure 7: Vd vs Height", x = "Height (cm)", y = "Vd (L/kg)")
 
 # Vd vs age
 age_plot2 <- ggplot(data, aes(x = age, y = Vd, colour = sex)) +
-  geom_point() +
-  scale_colour_manual(values = c("male" = "steelblue", "female" = "lightblue")) +
+  geom_point(size = 3) +
+  scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   geom_smooth(method = "lm", colour = "navy") +
-  labs(title = "Figure 7: Vd vs Age", x = "Age (years)", y = "Vd (L/kg)")
+  labs(title = "Figure 8: Vd vs Age", x = "Age (years)", y = "Vd (L/kg)")
 
 # Vd vs gender
 sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
                               fill = sex)) +
   geom_violin(alpha = 0.8) +
   geom_boxplot(width = 0.2, color = "navy", alpha = 0.7) +
-  scale_fill_manual(values = c("lightblue", "steelblue")) +
+  scale_fill_manual(values = c("seagreen", "skyblue")) +
   labs(
-    title = "Figure 8: Vd vs Gender",
+    title = "Figure 9: Vd vs Gender",
     x = "Gender",
     y = "Vd (L/kg)"
   ) +
-  guides(fill = "none") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-(weight_plot2 + height_plot2) /
-  (age_plot2 + sex_plot2) /
-  plot_layout(ncol = 1) +
-  plot_annotation(
-    title = "Vd Characteristics Plots",
-    theme = theme(plot.title = element_text(size = 16, face = "bold"))
-  )
+  guides(fill = "none")
 
 # Test correlation to investigate independent assumption
 cor.test(data$beta, data$Vd, use = "complete.obs")
@@ -417,22 +619,47 @@ ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
 # Visualize the joint distribution
 
 ggplot(data, aes(x = beta, y = Vd)) +
-  geom_point(alpha = 0.6, color = "steelblue") +
-  geom_density_2d(color = "navy") +
+  geom_point(alpha = 0.6, color = "orange", size = 3) +
+  geom_density_2d(color = "red") +
   # Add the marginal 97.5th percentiles
   geom_vline(xintercept = quantile(data$beta, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "red", linewidth = 1) +
+             linetype = "dashed", color = "blue", linewidth = 1) +
   geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "red", linewidth = 1) +
+             linetype = "dashed", color = "blue", linewidth = 1) +
   labs(
     title = "Joint Distribution of β and Vd",
-    subtitle = "Red lines show marginal 97.5th percentiles",
+    subtitle = "Blue lines show marginal 97.5th percentiles",
     x = "β (g/kg/h)",
     y = "Vd (L/kg)"
   ) +
   annotate("text", 
            x = quantile(data$beta, 0.975, na.rm = TRUE), 
            y = min(data$Vd, na.rm = TRUE),
-           label = "97.5th percentile β", 
-           hjust = -0.1, color = "red")
+           label = "97.5th percentile β", size = 7, 
+           hjust = -0.1, color = "blue")
 
+
+# Test person (from task 2)
+A <- mean(data$A) # Chose this kinda randomly but made the most sense to me 
+weight <- 70
+t <- 2
+
+# Calculate Ct using empirical joint distribution
+data$Ct_joint <- (A / (weight * data$Vd)) - data$beta * t
+
+# Compute the quantiles of C_t
+quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975), na.rm = TRUE)
+
+# Current (independent) approach
+beta_ind <- quantile(data$beta, 0.975, na.rm = TRUE)
+Vd_ind   <- quantile(data$Vd, 0.975, na.rm = TRUE)
+Ct_independent <- (A / (weight * Vd_ind)) - beta_ind * t
+
+# Table comparison
+results_compare <- tibble(
+  Method = c("Empirical joint (β,Vd)", "Independent 97.5th percentiles"),
+  Lower_2.5 = c(round(quantile(data$Ct_joint, 0.025, na.rm = TRUE), 3), ""),
+  Median     = c(round(quantile(data$Ct_joint, 0.5, na.rm = TRUE), 3), ""),
+  Upper_97.5 = c(round(quantile(data$Ct_joint, 0.975, na.rm = TRUE), 3), 
+                 round(Ct_independent, 3))
+)
