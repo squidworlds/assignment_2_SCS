@@ -66,7 +66,7 @@ data$beta <- -data$beta60
 
 # Executive Summary
 
-In this statistical report, we investigate the techniques used by the forensic services at Police Scotland on blood alcohol computations in criminal cases associated with drink driving. In UK law, it is an offence to drive with blood alcohol concentration (BAC) above the prescribed limit. Since alcohol levels fall over time, the measured BAC at the police station is lower than at the time of driving; forensic scientists ‘back-calculate’ the earlier level using an elimination rate.
+In this statistical report, we investigate the techniques used by the forensic services at Police Scotland on blood alcohol computations in criminal cases associated with drink driving. In UK law, it is an offence to drive with blood alcohol concentration (BAC) above the prescribed limit. Since alcohol levels fall over time, the measured BAC at the police station is lower than at the time of driving; forensic scientists ‘back-calculate’ the earlier level using an elimination rate [@FSR2020].
 
 The first method implemented by Police Scotland is the so-called $\beta$ elimination rate, which measures how quickly alcohol is eliminated from the bloodstream. Using available data, a distribution for $\beta$ can be constructed, and the 2.5th and 97.5th percentiles of this distribution are used as the limits for this range. Currently, if an individual has a blood alcohol concentration above the legal limit, calculated using the lower 2.5th percentile of the $\beta$ distribution, the forensic team concludes that they are above the limit. We assessed whether this approach fairly represents uncertainty and whether a clearer reporting standard could improve transparency.
 
@@ -98,7 +98,7 @@ Further, we recommend that when Widmark's equation is used, reports should speci
 
 ## Introduction
 
-The $\beta$ elimination rate (measured in g/kg/hr) measures how quickly alcohol is eliminated from the bloodstream, and is used by forensic scientists at Police Scotland when 'back-calculating' the BAC at the time of offence. This calculation is of form
+The $\beta$ elimination rate (measured in g/kg/hr) measures how quickly alcohol is eliminated from the bloodstream, and is used by forensic scientists at Police Scotland when 'back-calculating' the BAC at the time of offence [@FSR2020]. This calculation is of form
 
 $$C_0 = C_t +\beta t,$$
 
@@ -657,7 +657,7 @@ The `Q-Q Residuals` plot is improved, however there is only marginal change in t
 
 ### Quantile Linear Model Method
 
-The biggest issue with the linear model above for use in our project is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model. The aim of our analysis is to find the 2.5% quantile of $\beta$. It is more accurate to use quantile regression. We use the same linear model as above.
+The biggest issue with the linear model above for use in our project is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model. The aim of our analysis is to find the 2.5% quantile of $\beta$. It is more accurate to use quantile regression [@RodriguezYao2017]. We use the same linear model as above.
 
 Quantile of whole distribution of y\|x, instead of quantile of expectation of y\|x.
 
@@ -741,7 +741,7 @@ quantile_v_lm_plot <- ggplot() +
 quantile_v_lm_plot
 ```
 
-While it may look like taking the 2.5% quantile of the linear model, and using the quantile regression model produce very similar results, the methods are different. To find the 2.5% quantile of the linear model, we find the 2.5% quantile of the residuals, and add that onto $E(\beta | x)$ predicted by our model. This assumes homoscedaticity, that the residuals are independent of predictors, and we have shifted the line uniformly, without taking into account how residual quantile could change across the data. Our quantile regression method does not have a homoscedaticity assumption, which is more reasonable, especially as the residual plots of our linear model are questionable in upholding the homoscedaticity assumption.
+While it may look like taking the 2.5% quantile of the linear model, and using the quantile regression model produce very similar results, the methods are different. To find the 2.5% quantile of the linear model, we find the 2.5% quantile of the residuals, and add that onto $E(\beta | x)$ predicted by our model. This assumes homoscedaticity, that the residuals are independent of predictors, and we have shifted the line uniformly, without taking into account how residual quantile could change across the data [@RodriguezYao2017]. Our quantile regression method does not have a homoscedaticity assumption, which is more reasonable, especially as the residual plots of our linear model are questionable in upholding the homoscedaticity assumption.
 
 \newpage
 
