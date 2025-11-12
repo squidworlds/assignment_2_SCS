@@ -7,6 +7,8 @@ output:
     toc: true
     toc_float: false
     toc_depth: 3
+bibliography: references.bib
+link-citations: yes
 ---
 
 ```{r load_packages, include=FALSE}
@@ -108,7 +110,7 @@ Hence, it is worth exploring whether $\beta$ can be more effectively modelled to
 
 ## Provided Data
 
-The dataset analysed in this study was taken from a PhD thesis, and contains measurements associated with BAC. In particular, the dataset contains 100 observations with characteristic information about the individual, and details about the dose of alcohol consumed by the individual.
+The dataset analysed in this study was taken from a PhD thesis, and contains measurements associated with BAC [@thesis]. In particular, the dataset contains 100 observations with characteristic information about the individual, and details about the dose of alcohol consumed by the individual.
 
 Key variables that are explored in this report include:
 
@@ -1091,7 +1093,7 @@ $$
 C_t = \frac{A}{\text{Weight} \times V_d} - \beta t,
 $$
 
-where $A$ is the observed does of alcohol consumed, $\text{Weight}$ is the weight of the individual, and $V_d$ is a parameter known as the volume of distribution, "*a proportionality constant that relates the total amount of drug* (in our case alcohol) *in the body to the plasma concentration of the drug at a given time.*" (<https://www.ncbi.nlm.nih.gov/books/NBK545280/>). $V_d$ is measured with the units L/kg. Rearranging this equation we find
+where $A$ is the observed does of alcohol consumed, $\text{Weight}$ is the weight of the individual, and $V_d$ is a parameter known as the volume of distribution, "*a proportionality constant that relates the total amount of drug* (in our case alcohol) *in the body to the plasma concentration of the drug at a given time.*" [@Mansoor_Mahabadi_2023] $V_d$ is measured with the units L/kg. Rearranging this equation we find
 
 $$
 C_0 = C_t +\beta_t = \frac{A}{\text{Weight} \times V_d},
@@ -1313,6 +1315,12 @@ kable(results_compare, align = "lccc",
 The empirical joint $C_t$ distribution represents the upper and lower bounds of plausible blood alcohol concentrations for an individual with weight 70kg, who consumed the mean grams of alcohol from the sample and was tested 2 hours later.
 
 As seen from the table above this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
+
+\newpage
+
+# Bibliography
+
+<div id="refs"></div>
 
 \newpage
 
