@@ -1,6 +1,6 @@
 ---
 title: "Forensic Modelling of Blood Alcohol Evidence"
-subtitle: (... words)
+subtitle: (3769 words)
 author: Group 20, Aliya Mosha (s2206786), Saioa Galvin (s2516907), Hugh Graham (s2318382)
 output:
   html_document: 
@@ -421,7 +421,7 @@ gamma_rate <- gamma_fit$estimate[[2]]
 q025 <- qgamma(0.025, gamma_shape, gamma_rate)
 ```
 
-The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847. The Density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red. .
+The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847. The Density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
 
 ```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
 gamma_df <- data.frame(
@@ -919,26 +919,26 @@ kable(
   format = "markdown"
 )
 ```
+
 For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arrest and the fitted Gamma model for the elimination rate, the estimated 95% prediction/credible interval for the blood alcohol concentration at the time of driving is $C_0 \in (0.40,0.66)g/kg$. The probability that the true $C_0$ exceeded the legal limit of 0.47 g/kg is approximately 76%.
 
 Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently.
 
 ### 3. Graphical Uncertainty Presentation
 
-
 This approach visually presents the relationship between the elimination rate, $\beta$, and the estimated blood alcohol concentration at the time of driving, $C_0 = C_t + \beta t$.
 
 The figure combines several elements:
 
-- The fitted probability density function for $\beta$, assumed to follow a $Gamma(31.96,173.71)$ distribution based on the observed data.
-- The linear relationship $C_0 = C_t + \beta t$ (blue line).
-- A vertical line at $\beta_{\text{limit}} = \frac{C_{\text{legal}} - C_t}{t}$, representing the value of $\beta$ that would make $C_0$ exactly equal to the legal limit $C_{\text{legal}} = 0.47 g/kg$.
+-   The fitted probability density function for $\beta$, assumed to follow a $Gamma(31.96,173.71)$ distribution based on the observed data.
+-   The linear relationship $C_0 = C_t + \beta t$ (blue line).
+-   A vertical line at $\beta_{\text{limit}} = \frac{C_{\text{legal}} - C_t}{t}$, representing the value of $\beta$ that would make $C_0$ exactly equal to the legal limit $C_{\text{legal}} = 0.47 g/kg$.
 
 This graphical presentation effectively communicates two key ideas:
 
-1. The uncertainty surrounding the elimination rate $\beta$, as represented by its fitted probability distribution; and
+1.  The uncertainty surrounding the elimination rate $\beta$, as represented by its fitted probability distribution; and
 
-2. The degree of confidence that the individual’s true $C_0$ was above or below the legal threshold.
+2.  The degree of confidence that the individual’s true $C_0$ was above or below the legal threshold.
 
 All $\beta$ values to the right of the point $(\beta_{\text{limit}}, C_{\text{legal}})$ represent plausible elimination rates which, if true, would imply that the individual was over the legal limit. The proportion of the red shaded area under the curve quantifies this probability directly - providing an intuitive visual link between statistical uncertainty and the forensic question of interest.
 
