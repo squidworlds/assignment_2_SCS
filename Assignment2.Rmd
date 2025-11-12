@@ -1,12 +1,19 @@
 ---
 title: "Forensic Modelling of Blood Alcohol Evidence"
 subtitle: (3769 words)
-author: Group 20, Aliya Mosha (s2206786), Saioa Galvin (s2516907), Hugh Graham (s2318382)
+author: |
+  Group 20  
+  Aliya Mosha (s2206786)  
+  Saioa Galvin (s2516907)  
+  Hugh Graham (s2318382)
 output:
   html_document: 
     toc: true
     toc_float: false
     toc_depth: 3
+    number_sections: true
+    theme: journal
+    highlight: textmate
 bibliography: references.bib
 link-citations: yes
 ---
