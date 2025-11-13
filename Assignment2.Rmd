@@ -58,6 +58,7 @@ theme_set(
 source("code.R")
 ```
 
+
 ```{r data_wrangling, echo = FALSE, message = FALSE, fig.width=20, fig.height=40, fig.align='center'}
 # --- data wrangling ---
 data <- read_excel("SCS_BAC_and_BrAC_split_TOP.xlsx")
@@ -68,13 +69,7 @@ data$height <- data$`Height (cm)`
 data$age <- data$`Age (years)`
 data$beta <- -data$beta60
 ```
-
-<p style="font-size:2em;">
-
-Contents
-
-</p>
-
+<p style="font-size:2em; font-weight:bold;">Contents</p>
 ::: {#custom-toc}
 :::
 
@@ -787,7 +782,7 @@ $$ to obtain a point estimate of the blood alcohol concentration at the time of 
 
 To provide a more transparent and scientifically defensible analysis, we propose that Police Scotland adopt a probabilistic reporting framework, which explicitly quantifies the uncertainty in $\beta$ and its effect on the estimated blood alcohol concentration $C_0$.
 
-### 1. Probabilistic (Simulation-Based) Estimation
+### Probabilistic (Simulation-Based) Estimation
 
 Given that we have found $\beta$ to follow a Gamma distribution,
 
@@ -816,7 +811,7 @@ where $F_{Gamma}$ is the cumulative distribution function of the Gamma distribut
 
 This probability offers a more nuances summary than a simple 'above/below limit' approach. For example, if $\mathbb{P}(C_0 > x) = 0.78$, the expert witness could state that there is a 78% probability that the suspect's blood alcohol concentration exceeded the legal limit at the time of driving.
 
-### 2. Interval Based Presentation
+### Interval Based Presentation
 
 Alongside the probability, a prediction interval for $C_0$ could be presented:
 
@@ -958,7 +953,7 @@ For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arres
 
 Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently.
 
-### 3. Graphical Uncertainty Presentation
+### Graphical Uncertainty Presentation
 
 This approach visually presents the relationship between the elimination rate, $\beta$, and the estimated blood alcohol concentration at the time of driving, $C_0 = C_t + \beta t$.
 
