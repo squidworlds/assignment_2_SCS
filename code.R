@@ -320,7 +320,7 @@ sex_gamma_plot <- ggplot(data, aes(x = beta)) +
 # --- linear modelling beta 60 attempt ---
 
 # model incorporating all characteristics
-lm_model <- lm(beta ~ weight + age + height + sex, data = data)
+lm_model <- lm(beta ~ weight + height + sex, data = data)
 
 # Residual plots
 par(mfrow = c(2,2))
@@ -329,7 +329,7 @@ plot(lm_model)
 # Try modelling square root of beta (residual plots indicate
 # a slight quadratic mean-variance relationship)
 
-sqrt_lm_model <- lm(sqrt(beta) ~ weight + age + height + sex, data = data)
+sqrt_lm_model <- lm(sqrt(beta) ~ weight + height + sex, data = data)
 
 # Residual plots
 par(mfrow = c(2,2))
@@ -344,7 +344,7 @@ pred_data$lm_pred <- predict(lm_model)
 pred_data$lm_q025 <- pred_data$lm_pred + resid_q025
 
 # using quantile regression instead
-rq_model <- rq(beta ~ weight + age + height + sex, data = data, tau = 0.025)
+rq_model <- rq(beta ~ weight + height + sex, data = data, tau = 0.025)
 pred_data$rq_pred <- predict(rq_model)
 
 # Combine into a long format for ggplot

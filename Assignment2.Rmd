@@ -58,7 +58,6 @@ theme_set(
 source("code.R")
 ```
 
-
 ```{r data_wrangling, echo = FALSE, message = FALSE, fig.width=20, fig.height=40, fig.align='center'}
 # --- data wrangling ---
 data <- read_excel("SCS_BAC_and_BrAC_split_TOP.xlsx")
@@ -69,7 +68,9 @@ data$height <- data$`Height (cm)`
 data$age <- data$`Age (years)`
 data$beta <- -data$beta60
 ```
+
 <p style="font-size:2em; font-weight:bold;">Contents</p>
+
 ::: {#custom-toc}
 :::
 
@@ -1056,7 +1057,7 @@ A 70 year old female (weight: 70kg, height: 160cm) is arrested after being stopp
 
 We can find the $2.5%$ quantile of the different beta distributions. Why?
 
-```{r task_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+```{r task_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=15, fig.height=10, fig.align='center'}
 
 # setup from question
 test_person <- data.frame(weight = 70, height = 160, age = 70, sex = "female")
@@ -1107,6 +1108,108 @@ kable(results_table, digits = 3,
 ```
 
 The legal limit is 0.47g/kg.
+
+```{r approach comparison, echo = FALSE, fig.width=20, fig.height=10, fig.align='center'}
+
+# Given parameters
+Ct      <- 0.15 
+t       <- 2 
+x_limit <- 0.47
+
+# 1. Current approach (fixed beta)
+beta_fixed <- 0.126
+C0_fixed   <- Ct + beta_fixed * t
+p_fixed    <- as.numeric(C0_fixed > x_limit) 
+
+# 2. Gamma model (use report MLEs)
+gamma_shape <- 31.9538
+gamma_rate  <- 173.7079
+
+beta_q025_gamma <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
+beta_q975_gamma <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
+
+C0_gamma_lower <- Ct + beta_q025_gamma * t
+C0_gamma_upper <- Ct + beta_q975_gamma * t
+C0_gamma_mean  <- mean(c(C0_gamma_lower, C0_gamma_upper))
+
+# Probability analytically from Gamma CDF
+beta_threshold <- (x_limit - Ct) / t
+p_gamma <- 1 - pgamma(beta_threshold, shape = gamma_shape, rate = gamma_rate)
+
+# 3. Quantile regression approach (population-average bands)
+# Fit lower/upper quantile regression for beta
+rq_lower <- rq(beta ~ weight + age + sex, data = data, tau = 0.025)
+rq_upper <- rq(beta ~ weight + age + sex, data = data, tau = 0.975)
+
+# Predict β quantiles for each observation in the dataset
+beta_q025_qr <- as.numeric(predict(rq_lower, newdata = data))
+beta_q975_qr <- as.numeric(predict(rq_upper, newdata = data))
+
+# Summarize Co interval by averaging β quantiles across the population 
+C0_qr_lower <- Ct + mean(beta_q025_qr, na.rm = TRUE) * t
+C0_qr_upper <- Ct + mean(beta_q975_qr, na.rm = TRUE) * t
+C0_qr_mean  <- mean(c(C0_qr_lower, C0_qr_upper))
+
+# Approximate P(Co > limit) under QR
+set.seed(123)
+n_sim <- 10000
+# Sample indices and uniform draws between predicted bounds
+idx <- sample(seq_along(beta_q025_qr), size = n_sim, replace = TRUE)
+beta_samples_qr <- runif(n_sim, min = beta_q025_qr[idx], max = beta_q975_qr[idx])
+C0_samples_qr   <- Ct + beta_samples_qr * t
+p_qr <- mean(C0_samples_qr > x_limit, na.rm = TRUE)
+
+# plot
+results_df <- tibble(
+  Method = c("Current (Fixed β=0.126)", "Gamma model", "Quantile regression"),
+  Lower  = c(C0_fixed, C0_gamma_lower, C0_qr_lower),
+  Upper  = c(C0_fixed, C0_gamma_upper, C0_qr_upper),
+  Mean   = c(C0_fixed, C0_gamma_mean, C0_qr_mean),
+  Prob   = c(p_fixed, p_gamma, p_qr)
+)
+
+# Plot
+p <- ggplot(results_df, aes(y = Method)) +
+  # Interval bands (thin lines)
+  geom_segment(aes(x = Lower, xend = Upper, y = Method, yend = Method,
+                   colour = Method), linewidth = 2) +
+  # Endpoints for clarity
+  geom_point(aes(x = Lower, colour = Method), size = 3) +
+  geom_point(aes(x = Upper, colour = Method), size = 3) +
+  # Mean point
+  geom_point(aes(x = Mean, colour = Method), size = 10, shape = 18) +
+  # Legal limit line
+  geom_vline(xintercept = x_limit, linetype = "dashed",
+             colour = "darkgreen", linewidth = 1) +
+  annotate("text", x = x_limit + 0.01, y = 3.3,
+           label = "Legal limit = 0.47 g/kg",
+           colour = "darkgreen", hjust = 0, size = 9) +
+  annotate("rect", xmin = x_limit - 0.005, xmax = x_limit + 0.005,
+           ymin = 0.5, ymax = 3.5, alpha = 0.1, fill = "darkgreen") +
+  # Probability labels (skip Current approach)
+  # Probability labels (skip Current approach)
+geom_text(
+  data = subset(results_df, Method != "Current (Fixed β=0.126)"),
+  aes(x = Upper, 
+      y = Method, 
+      label = sprintf("P(C[0] > 0.47) == %.2f", Prob)),
+  parse = TRUE,
+  hjust = 1,
+  vjust = 1.5,
+  size = 9,
+  colour = "black"
+) +
+  scale_x_continuous(name = expression(C[0]~"(g/kg)"),
+                     limits = c(0.35, 0.72),
+                     expand = c(0, 0)) +
+  scale_colour_manual(values = c("Current (Fixed β=0.126)" = "grey60",
+                                 "Gamma model"             = "firebrick",
+                                 "Quantile regression"     = "hotpink"),
+                      name = "Method") +
+  ggtitle(expression("Comparison of reporting frameworks for " * C[0]))
+
+p
+```
 
 \newpage
 
