@@ -12,7 +12,7 @@ output:
     toc_float: false
     toc_depth: 3
     number_sections: true
-    theme: journal
+    theme: cosmo
     highlight: textmate
 bibliography: references.bib
 link-citations: yes
@@ -67,6 +67,21 @@ data$weight <- data$`Weight (kg)`
 data$height <- data$`Height (cm)`
 data$age <- data$`Age (years)`
 data$beta <- -data$beta60
+```
+<p style="font-size:2em;">Contents</p>
+
+<div id="custom-toc"></div>
+
+```{=html}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  var toc = document.getElementById("TOC");
+  var target = document.getElementById("custom-toc");
+  if (toc && target) {
+    target.appendChild(toc);
+  }
+});
+</script>
 ```
 
 \newpage
@@ -1327,7 +1342,8 @@ As seen from the table above this resulted in a range (0.659, 1.455), compared t
 
 # Bibliography
 
-<div id="refs"></div>
+::: {#refs}
+:::
 
 \newpage
 
