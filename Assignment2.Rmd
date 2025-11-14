@@ -1156,7 +1156,7 @@ C0_qr_mean  <- mean(c(C0_qr_lower, C0_qr_upper))
 
 # Approximate P(Co > limit) under QR
 set.seed(123)
-n_sim <- 10000
+n_sim <- 1000
 # Sample indices and uniform draws between predicted bounds
 idx <- sample(seq_along(beta_q025_qr), size = n_sim, replace = TRUE)
 beta_samples_qr <- runif(n_sim, min = beta_q025_qr[idx], max = beta_q975_qr[idx])
