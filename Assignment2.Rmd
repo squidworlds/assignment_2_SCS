@@ -101,19 +101,15 @@ Using the provided dataset of 100 individuals [@thesis], we examined how $\beta$
 
 We then applied these findings by comparing several modelling strategies:
 
--   **Parametric Distributions**: Gamma provided the most accurate fit to the observed $\beta$ values, outperforming normal and beta alternatives.
+-   **Parametric Distributions**: Gamma provided the most accurate fit to the observed $\beta$ values.
 
--   **Linear models**: Useful for incorporating continuous predictors, though residual diagnostics suggested violations of assumptions.
+-   **Linear models**: Useful approach for incorporating predictors, though a violation of assumptions was apparent.
 
--   **Quantile Regression**: A more appropriate approach when estimating the lower tail of $\beta$, avoiding restrictive assumptions and allowing covariate-specific inference.
+-   **Quantile Regression**: A more appropriate approach when estimating the lower tail of $\beta$, as used in back-calculations.
 
-In our investigation, we propose replacing the current binary cutoff with a probabilistic and interval-based framework:
+We propose replacing the current binary cutoff with a probabilistic and interval-based framework: providing the probability that the BAC at the time of driving exceeded the legal limit, along with a 95% credible interval for the back-calculated BAC.
 
--   **Probabilistic Estimation**: Compute the probability that the BAC at the time of driving exceeded the legal limit, using Monte Carlo simulation or analytical integration of the fitted distribution.
-
--   **Interval Presentation**: A 95% credible interval for the back-calculated BAC is then provided, alongside the probability of exceeding the limit.
-
-As a case study example, we found that under the current approach, an individual would be deemed not over the limit, while our suggested approaches provide respective probabilities of 76% and 75% that the individual was indeed over the limit - revealing a substantial likelihood that the individual was above the legal threshold, in contrast to the binary conclusion under current practice.
+As an example, we found that under the current approach an individual would be deemed not over the limit, whereas our suggested approaches provide respective probabilities of 76% and 75% that they were indeed over the limit - revealing a substantial likelihood that the individual was above the legal threshold, in contrast to the binary conclusion under current practice.
 
 We also considered situations where no blood sample is available and Widmark’s equation must be used along with eyewitness dose, which introduces the volume of distribution $V_d$. The standard approach treats $\beta$ and $V_d$ as independent and applies fixed percentile ranges for both.
 
