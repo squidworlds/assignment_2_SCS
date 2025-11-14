@@ -69,7 +69,11 @@ data$age <- data$`Age (years)`
 data$beta <- -data$beta60
 ```
 
-<p style="font-size:2em; font-weight:bold;">Contents</p>
+<p style="font-size:2em; font-weight:bold;">
+
+Contents
+
+</p>
 
 ::: {#custom-toc}
 :::
@@ -347,7 +351,7 @@ Thesefigures can point us towards a few different distributions. We can analyse 
 
 #### Residual Plots of Fitted Distributions
 
-The aim of finding a distribution to fit $\beta$ is to smooth out the distribution to decrease the influence of a few outliers in the original dataset, as there are only 100 values. That means that a single datapoint can skew the $2.5%$ quantile that we are aiming to find. We are also focused on simplicity, so have only looked at 3 different distributions that have the general shape of the data, shown in the figures in the section above. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs below.
+The aim of finding a distribution to fit $\beta$ is to smooth out the distribution to decrease the influence of a few outliers in the original dataset, as there are only 100 values. That means that a single datapoint can skew the 2.5th quantile that we are aiming to find. We are also focused on simplicity, so have only looked at 3 different distributions that have the general shape of the data, shown in the figures in the section above. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs below.
 
 ```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
@@ -449,7 +453,7 @@ gamma_rate <- gamma_fit$estimate[[2]]
 q025 <- qgamma(0.025, gamma_shape, gamma_rate)
 ```
 
-The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847. The density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
+The 2.5th quantile in the gamma distribution of $\beta$ is 0.1257847. The density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
 
 ```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
 gamma_df <- data.frame(
@@ -791,9 +795,9 @@ $$
 \beta \sim Gamma(\hat{\alpha}, \hat{\lambda})
 $$
 
-where $\hat{\alpha} = 31.95$ and $\hat{\lambda} = 173.71$, we can propagate this uncertainty to obtain the distribution of $C_0 = C_t + \beta t$.
+where $\hat{\alpha}$= 31.95 and $\hat{\lambda}$ = 173.71, we can propagate this uncertainty to obtain the distribution of $C_0 = C_t + \beta t$.
 
-A simple Monte Carlo procedure can be used to estimate the probability that the initial true blood alcohol concentration was above the legal limit $x = 0.47 g/kg$:
+A simple Monte Carlo procedure can be used to estimate the probability that the initial true blood alcohol concentration was above the legal limit $x =$ 0.47 g/kg:
 
 $$
 \begin{eqnarray}
@@ -810,7 +814,7 @@ $$
 
 where $F_{Gamma}$ is the cumulative distribution function of the Gamma distribution.
 
-This probability offers a more nuances summary than a simple 'above/below limit' approach. For example, if $\mathbb{P}(C_0 > x) = 0.78$, the expert witness could state that there is a 78% probability that the suspect's blood alcohol concentration exceeded the legal limit at the time of driving.
+This probability offers a more nuances summary than a simple 'above/below limit' approach. For example, if $\mathbb{P}(C_0 > x)$=0.78, the expert witness could state that there is a 78% probability that the suspect's blood alcohol concentration exceeded the legal limit at the time of driving.
 
 ### Interval Based Presentation
 
@@ -820,7 +824,7 @@ $$
 C_0 \in [C_t + q_{0.025}(\beta) t, C_t + q_{0.975}(\beta) t]
 $$
 
-This provides a range of plausible values for $C_0$ given the uncertainty in $\beta$. For example, using $C_t = 0.15 g/kg$ and $t = 2$ hours, a 95% prediction/credible interval for the blood alcohol concentration at the time of driving, $C_0$, would be (0.4, 0.66) g/kg.
+This provides a range of plausible values for $C_0$ given the uncertainty in $\beta$. For example, using $C_t$ = 0.15 g/kg and $t$=2 hours, a 95% prediction/credible interval for the blood alcohol concentration at the time of driving, $C_0$, would be (0.4, 0.66) g/kg.
 
 ```{r, echo = FALSE, message = FALSE}
 # Given parameters
@@ -950,9 +954,9 @@ kable(
 )
 ```
 
-For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arrest and the fitted Gamma model for the elimination rate, the estimated 95% prediction/credible interval for the blood alcohol concentration at the time of driving is $C_0 \in (0.40,0.66)g/kg$. The probability that the true $C_0$ exceeded the legal limit of 0.47 g/kg is approximately 76%.
+For the 70-year-old female, given $C_t$ = 0.15 g/kg measured 2 hours after arrest and the fitted Gamma model for the elimination rate, the estimated 95% prediction/credible interval for the blood alcohol concentration at the time of driving is $C_0 \in$ (0.40,0.66)g/kg. The probability that the true $C_0$ exceeded the legal limit of 0.47 g/kg is approximately 76%.
 
-Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently.
+Under the current forensic convention (using $\beta$= 0.126), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently.
 
 ### Graphical Uncertainty Presentation
 
@@ -960,9 +964,9 @@ This approach visually presents the relationship between the elimination rate, $
 
 The figure combines several elements:
 
--   The fitted probability density function for $\beta$, assumed to follow a $Gamma(31.96,173.71)$ distribution based on the observed data.
+-   The fitted probability density function for $\beta$, assumed to follow a $Gamma$(31.96,173.71) distribution based on the observed data.
 -   The linear relationship $C_0 = C_t + \beta t$ (blue line).
--   A vertical line at $\beta_{\text{limit}} = \frac{C_{\text{legal}} - C_t}{t}$, representing the value of $\beta$ that would make $C_0$ exactly equal to the legal limit $C_{\text{legal}} = 0.47 g/kg$.
+-   A vertical line at $\beta_{\text{limit}} = \frac{C_{\text{legal}} - C_t}{t}$, representing the value of $\beta$ that would make $C_0$ exactly equal to the legal limit $C_{\text{legal}}$ = 0.47 g/kg.
 
 This graphical presentation effectively communicates two key ideas:
 
@@ -973,7 +977,7 @@ This graphical presentation effectively communicates two key ideas:
 All $\beta$ values to the right of the point $(\beta_{\text{limit}}, C_{\text{legal}})$ represent plausible elimination rates which, if true, would imply that the individual was over the legal limit. The proportion of the red shaded area under the curve quantifies this probability directly - providing an intuitive visual link between statistical uncertainty and the forensic question of interest.
 
 ```{r echo = FALSE, message = FALSE}
-
+set.seed(123)
 # Parameters
 gamma_shape <- 31.9538
 gamma_rate  <- 173.7079
@@ -1369,7 +1373,7 @@ ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
 
 ```
 
-From the correlation test, we find that there is an observed correlation of -0.404, and the null hypothesis that the true correlation is equal to zero, i.e. the two measures are independent, can be confidently rejected as there is a corresponding p-value of $3.122\times10^{-5}$.
+From the correlation test, we find that there is an observed correlation of -0.404, and the null hypothesis that the true correlation is equal to zero, i.e. the two measures are independent, can be confidently rejected as there is a corresponding p-value of 3.122x10⁻⁵.
 
 Figure 10 further highlights this clear relationship between the two measures, and hence the independence assumption appears to be violated.
 
@@ -1379,7 +1383,7 @@ The current method offers several key strengths that make it well-suited for for
 
 ### Limitations of Current Method
 
-The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, a Pearson's product-moment correlation analysis reveals a statistically significant negative correlation between these two parameters (correlation coefficient = -0.404, p-value = $3.122\times10^{-5}$ \< 0.05). This finding directly contradicts the independence assumption underlying the current approach.
+The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, a Pearson's product-moment correlation analysis reveals a statistically significant negative correlation between these two parameters (correlation coefficient = -0.404, p-value = 3.122x10⁻⁵ \< 0.05). This finding directly contradicts the independence assumption underlying the current approach.
 
 Although the official forensic procedure specifies using the 97.5th percentile for both $\beta$ and $V_d$, this convention is based on policy rather than mathematical reasoning. Forensic laboratories apply the same "upper percentile rule" across all parameters to maintain consistency and to err on the side of caution, as using higher parameter values for $\beta$ and $V_d$ generally produces lower blood alcohol estimates. Mathematically Widmark's equation shows that $C_t$ decreases as $\beta$ and $V_d$ both increase, thus the maximum possible value of $C_t$ would occur for low $\beta$ and low $V_d$ values (their 2.5th percentiles). Regardless of which tail is used, the critical statistical issue with the current method is that it assumes that $\beta$ and $V_d$ are independent, when our analysis shows that $\beta$ and $V_d$ have a significant negative correlation.
 
