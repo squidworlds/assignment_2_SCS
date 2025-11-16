@@ -729,19 +729,13 @@ pred_data$rq_pred <- predict(rq_model, newdata = data)
 # reshape
 plot_data <- pred_data %>%
   pivot_longer(
-    cols = c(lm_pred_mean, lm_q025, rq_pred),
+    cols = c(lm_q025, rq_pred),
     names_to = "model",
     values_to = "predicted_beta"
   )
 
 # plot
 quantile_v_lm_plot <- ggplot() +
-  # 95% prediction interval shaded area (between lm_pred_lwr and lm_pred_upr)
-  geom_ribbon(
-    data = pred_data,
-    aes(x = beta, ymin = lm_pred_lwr, ymax = lm_pred_upr),
-    fill = "lightblue", alpha = 0.25
-  ) +
   # Points for models (mean LM, quantile LM, quantile regression)
   geom_point(
     data = plot_data,
@@ -754,12 +748,9 @@ quantile_v_lm_plot <- ggplot() +
     aes(x = beta, y = predicted_beta, color = model),
     method = lm, se = TRUE, linewidth = 1
   ) +
-  # 1:1 line
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
   # Manual colors and labels
   scale_color_manual(
     values = c(
-      "lm_pred_mean" = "blue",
       "lm_q025"      = "gold",
       "rq_pred"      = "darkred"
     ),
