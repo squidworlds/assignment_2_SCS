@@ -775,287 +775,138 @@ While it may look like taking the 2.5% quantile of the linear model, and using t
 
 ## Recommended Reporting Framework for Police Scotland
 
-The current forensic approach uses a single threshold for the elimination rate, specifically the 2.5th percentile of the empirical or fitted distribution of $\beta$. This value is substituted into
+**Limitations of the Current Approach**
+
+The current forensic practice uses a single threshold - the 2.5th percentile of the elimination rate distribution - to make binary decisions about whether an individual exceeded the legal limit. When a suspect's blood alcohol is measured at the police station, forensic scientists calculate what their level would have been at the time of driving using the formula:
 
 $$
 C_0 = C_t + \beta t
-$$ to obtain a point estimate of the blood alcohol concentration at the time of driving. A binary decision is then made as to whether this estimated $C_0$ exceeds the legal limit. While this approach is simple, it disregards uncertainty in $\beta$ and in the model used to derive it. Consequently, it may give a misleading impression of precision in borderline cases.
+$$ 
 
-To provide a more transparent and scientifically defensible analysis, we propose that Police Scotland adopt a probabilistic reporting framework, which explicitly quantifies the uncertainty in $\beta$ and its effect on the estimated blood alcohol concentration $C_0$.
+where $C_t$ is the measured blood alcohol concentration, $\beta$ is the elimination rate, and $t$ is the elapsed time (in hours) since driving. 
 
-### Probabilistic (Simulation-Based) Estimation
+Currently, if the back-calculated $C_0$ using the 2.5th percentile of $\beta$ exceeds the legal limit, the individual is reported as being over the limit. While this approach is straightforward to implement, it has several significant drawbacks:
 
-Given that we have found $\beta$ to follow a Gamma distribution,
+1. **It treats uncertainty as certainty:** Using a single value for $\beta$ implues precision that does not exist. Our analysis shows that $\beta$ varies considerably between individuals.
 
-$$
-\beta \sim Gamma(\hat{\alpha}, \hat{\lambda})
-$$
+2. **It ignores individual characteristics:** The current method applies the same $\beta$ value to everyone, despite clear evidence that elimination rates differ based on weight, height, and sex.
 
-where $\hat{\alpha} = 31.95$ and $\hat{\lambda} = 173.71$, we can propagate this uncertainty to obtain the distribution of $C_0 = C_t + \beta t$.
+3. **It provides no measure of confidence:** A binary "over/under" verdict gives no indication of how confident we should be in that conclusion. An individual barely above the threshold is treated identically to one far exceeding it.
 
-A simple Monte Carlo procedure can be used to estimate the probability that the initial true blood alcohol concentration was above the legal limit $x = 0.47 g/kg$:
+4. **It may lead to inconsistent outcomes:** Two individuals with identical measured BAC values but different characteristics may have had very different BAC levels at the time of driving, yet receive the same assessment.
+
+**Proposed Framework: Probabilistic Reporting**
+
+We recommend that Police Scotland adopt a reporting framework that explicitly acknowledges and quantifies uncertainty. Rather than providing a single yes/no answer, reports should include:
+
+1. **The measured facts:**
+
+- Measured BAC at the police station ($C_t$)
+- Time elapsed since driving ($t$ hours)
+- Individual characteristics (weight, height, sex)
+
+2. **The estimated BAC at time of driving:**
+
+- A point estimate for $C_0$ (the most likely value)
+- A 95% uncertainty interval for $C_0$ (the range of plausible values)
+
+3. **A probability statement:**
+
+- The probability that $C_0$ exceeded the legal limit 
+
+This approach transparently communicates both what we know and what remains uncertain, allowing legal decision-makers to weigh the evidence appropriately. We evaluated three approaches for generating these probability statements.
+
+### Method 1: Fitted Distribution (Whole Population)
+
+By fitting a Gamma distribution to the observed elimination rates across the entire dataset, we obtain a smooth representation of how $\beta$ varies in the population. The fitted distribution has parameters $\alpha$ = 31.95
+and $\lambda$ = 173.71.
+
+Using this distribution, we can calculate:
 
 $$
 \begin{eqnarray}
-\mathbb{P}(C_0 > x) &=& \mathbb{P}(C_t + \beta t > x) \\
-&=& \mathbb{P}\left(\beta > \frac{(x - C_t)}{t}\right)
+\mathbb{P}(C_0 > x) &=& 1 - F_{Gamma}\left(\frac{x - C_t}{t}\right)
 \end{eqnarray}
 $$
-
-This could also be computed directly from the fitted Gamma distribution:
-
-$$
-\mathbb{P}(C_0 > x) = 1 - F_{Gamma}\left(\frac{(x - C_t)}{t} ; \hat{\alpha}, \hat{\lambda}\right)
-$$
-
-where $F_{Gamma}$ is the cumulative distribution function of the Gamma distribution.
-
-This probability offers a more nuances summary than a simple 'above/below limit' approach. For example, if $\mathbb{P}(C_0 > x) = 0.78$, the expert witness could state that there is a 78% probability that the suspect's blood alcohol concentration exceeded the legal limit at the time of driving.
-
-### Interval Based Presentation
-
-Alongside the probability, a prediction interval for $C_0$ could be presented:
+where $x$ is the legal limit (0.47 g/kg) and $F_{Gamma}$ is the cumulative distribution function of the fitted Gamma distribution. The 95% uncertainty interval for $C_0$ is constructed using the 2.5th and 97.5th percentiles of the Gamma distribution:
 
 $$
-C_0 \in [C_t + q_{0.025}(\beta) t, C_t + q_{0.975}(\beta) t]
+C_0 \in [C_t + \beta_{0.025} \times t,\ C_t + \beta_{0.975} \times t]
 $$
 
-This provides a range of plausible values for $C_0$ given the uncertainty in $\beta$. For example, using $C_t = 0.15 g/kg$ and $t = 2$ hours, a 95% prediction/credible interval for the blood alcohol concentration at the time of driving, $C_0$, would be (0.4, 0.66) g/kg.
+**Advantages:** Simple to implement; requires only the measured BAC and elapsed time; provides conservative estimates that account for population-wide variability.
 
-```{r, echo = FALSE, message = FALSE}
-# Given parameters
-Ct <- 0.15         # measured concentration (g/kg)
-t  <- 2            # time since arrest (hours)
-x  <- 0.47         # legal limit (g/kg)
+**Limitations:** Does not incorporate individual characteristics; treats a 20-year-old male and a 70-year-old female identically.
 
-# Fitted Gamma parameters for beta
-gamma_shape <- 31.9538
-gamma_rate  <- 173.7079
 
-# 1. Compute 2.5th and 97.5th percentiles of beta
-beta_q025 <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
-beta_q975 <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
+### Method 2: Sex-Specific Fitted Distributions 
 
-# 2. Compute 95% interval for C0
-C0_lower <- Ct + beta_q025 * t
-C0_upper <- Ct + beta_q975 * t
-C0_interval <- c(C0_lower, C0_upper)
+Our analysis revealed clear differences in elimination rates between males and females. We can fit separate Gamma distributions for each sex:
 
-# 3. Compute probability that true C0 exceeded legal limit
-beta_threshold <- (x - Ct) / t
-p_over_limit <- 1 - pgamma(beta_threshold, shape = gamma_shape, rate = gamma_rate)
+- Males: $\alpha$ = 29.87, $\lambda$ = 156.23 (2.5th percentile: 0.122 g/kg/h)
+- Females: $\alpha$ = 38.73, $\lambda$ = 210.12 (2.5th percentile: 0.143 g/kg/h)
 
-# 4. Monte Carlo simulation
-set.seed(123)
-n_sim <- 1000
-beta_samples <- rgamma(n_sim, shape = gamma_shape, rate = gamma_rate)
-C0_samples <- Ct + beta_samples * t
-p_over_limit_sim <- mean(C0_samples > x)
+This provides more tailored estimates while maintaining simplicity.
 
-# Summaries
-C0_mean <- mean(C0_samples)
-C0_sd   <- sd(C0_samples)
+**Advantages:** Accounts for the most significant individual characteristic; still straightforward to implement.
 
-# Create summary table
-results <- data.frame(
-  Statistic = c(
-    "Interval length",
-    "Lower 95% bound for C₀",
-    "Upper 95% bound for C₀",
-    "Analytical P(C₀ > 0.47 g/kg)",
-    "Simulated P(C₀ > 0.47 g/kg)",
-    "Mean of simulated C₀",
-    "SD of simulated C₀"
-  ),
-  Value = c(
-    round(C0_upper - C0_lower, 3),
-    round(C0_lower, 3),
-    round(C0_upper, 3),
-    round(p_over_limit, 3),
-    round(p_over_limit_sim, 3),
-    round(C0_mean, 3),
-    round(C0_sd, 3)
-  )
-)
+**Limitations:** Ignores other relevant factors such as weight and height.
 
-kable(
-  results,
-  caption = "Table 2: Summary of Back-Calculated Blood-Alcohol Concentration (C₀)",
-  col.names = c("Statistic", "Value"),
-  align = c("l", "c"),
-  format = "markdown"
-)
-```
+### Method 3: Quantile Regression 
 
-Quantile regression produces a 2.5% and 97.5% quantile for each possible combination of explanatory variables, so we have to interpret a confidence interval of possible elimination rates differently here. To give an indication of the range of beta under quantile regression, we can look at the mean at each quantile.
+Quantile regression allows us to model how the lower and upper bounds of the elimination rate vary with individual characteristics. Rather than predicting the average $\beta$ for someone with given characteristics, this method directly estimates the 2.5th and 97.5th percentiles of their elimination rate.
 
-```{r, echo = FALSE, message = FALSE}
-# Given parameters
-Ct <- 0.15   # measured concentration (g/kg)
-t  <- 2      # time since arrest (hours)
+The model takes the form:
 
-# Fit quantile regression models for beta
-rq_lower  <- rq(beta ~ weight + age + sex, data = data, tau = 0.025)
-rq_upper  <- rq(beta ~ weight + age + sex, data = data, tau = 0.975)
+$$
+\beta = f(\text{weight, height, sex})
+$$
+For a given individual, we obtain personalized bounds: $\beta^{individual}_{0.025}$ and $\beta^{individual}_{0.975}$.
 
-# Predict quantile values of beta for each observation
-beta_q025 = predict(rq_lower,  newdata = data)
-beta_q975 = predict(rq_upper,  newdata = data)
+**Advantages:** Fully accounts for individual variability; provides the most accurate uncertainty intervals; does not assume constant variability across the population.
 
-# Compute 95% interval for C0 for each observation
-C0_lower = Ct + mean(beta_q025) * t
-C0_upper = Ct + mean(beta_q975) * t
-C0_interval <- c(C0_lower, C0_upper)
+**Limitations:** Requires more information about the individual; slightly more complex to implement.
 
-# Monte Carlo-style resampling from the quantile predictions
-set.seed(123)
-n_sim <- 10000
-# approximate sampling of beta between 2.5% and 97.5% quantiles
-beta_samples <- runif(n_sim, min = mean(beta_q025), max = mean(beta_q975))
-C0_samples <- Ct + beta_samples * t
 
-# Probability that C0 exceeded the legal limit x
-p_over_limit_sim <- mean(C0_samples > x)
+**Benefits for the Justice System**
 
-# Summaries
-C0_mean <- mean(C0_samples)
-C0_sd   <- sd(C0_samples)
+This probabilistic framework offers several advantages:
 
-# Create summary table
-results <- data.frame(
-  Statistic = c(
-    "Interval Length",
-    "Lower 95% bound for C₀",
-    "Upper 95% bound for C₀",
-    "Simulated P(C₀ > 0.47 g/kg)",
-    "Mean of simulated C₀",
-    "SD of simulated C₀"
-  ),
-  Value = c(
-    round(C0_upper - C0_lower, 3),
-    round(C0_lower, 3),
-    round(C0_upper, 3),
-    round(p_over_limit_sim, 3),
-    round(C0_mean, 3),
-    round(C0_sd, 3)
-  )
-)
+1. Transparency: It openly acknowledges what can and cannot be determined from the evidence.
+2. Proportionality: Cases with clear-cut evidence (very high probabilities) can be distinguished from borderline cases.
+3. Fairness: Individuals are not arbitrarily classified as "over" or "under" the limit when their true status is genuinely uncertain.
+4. Scientific integrity: The approach aligns with modern statistical practice and avoids overstating the precision of forensic estimates.
+5. Legal flexibility: Courts and prosecutors can weigh probabilistic evidence alongside other factors, rather than relying solely on a binary cutoff.
 
-kable(
-  results,
-  caption = "Table 3: Summary of Back-Calculated Blood-Alcohol Concentration using Quantile Regression (C₀)",
-  col.names = c("Statistic", "Value"),
-  align = c("l", "c"),
-  format = "markdown"
-)
-```
-
-For the 70-year-old female, given $C_t = 0.15 g/kg$ measured 2 hours after arrest and the fitted Gamma model for the elimination rate, the estimated 95% prediction/credible interval for the blood alcohol concentration at the time of driving is $C_0 \in (0.40,0.66)g/kg$. The probability that the true $C_0$ exceeded the legal limit of 0.47 g/kg is approximately 76%.
-
-Under the current forensic convention (using $\beta = 0.126$), the individual would be reported as below the limit. However, our uncertainty-based model reveals a substantial probability that her true level was above the limit, suggesting that a probabilistic or interval-based report would convey the evidence more transparently.
-
-### Graphical Uncertainty Presentation
-
-This approach visually presents the relationship between the elimination rate, $\beta$, and the estimated blood alcohol concentration at the time of driving, $C_0 = C_t + \beta t$.
-
-The figure combines several elements:
-
--   The fitted probability density function for $\beta$, assumed to follow a $Gamma(31.96,173.71)$ distribution based on the observed data.
--   The linear relationship $C_0 = C_t + \beta t$ (blue line).
--   A vertical line at $\beta_{\text{limit}} = \frac{C_{\text{legal}} - C_t}{t}$, representing the value of $\beta$ that would make $C_0$ exactly equal to the legal limit $C_{\text{legal}} = 0.47 g/kg$.
-
-This graphical presentation effectively communicates two key ideas:
-
-1.  The uncertainty surrounding the elimination rate $\beta$, as represented by its fitted probability distribution; and
-
-2.  The degree of confidence that the individual’s true $C_0$ was above or below the legal threshold.
-
-All $\beta$ values to the right of the point $(\beta_{\text{limit}}, C_{\text{legal}})$ represent plausible elimination rates which, if true, would imply that the individual was over the legal limit. The proportion of the red shaded area under the curve quantifies this probability directly - providing an intuitive visual link between statistical uncertainty and the forensic question of interest.
-
-```{r echo = FALSE, message = FALSE}
-
-# Parameters
-gamma_shape <- 31.9538
-gamma_rate  <- 173.7079
-
-# Quantiles for beta
-beta_q025 <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
-beta_q975 <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
-
-# Case-specific parameters
-C_t <- 0.15
-t <- 2
-C_legal <- 0.47
-
-# Derived beta that yields legal limit for C0
-beta_limit <- (C_legal - C_t) / t
-
-# Sequence of beta values
-beta <- seq(beta_q025, beta_q975, length.out = 1000)
-
-# Corresponding C0 values
-C0 <- C_t + beta * t
-
-# Gamma PDF for beta
-pdf_beta <- dgamma(beta, shape = gamma_shape, rate = gamma_rate)
-
-# Plot C0 vs beta
-plot(beta, C0, type = "l", lwd = 2, col = "blue",
-     xlab = expression(beta), ylab = expression(C[0]),
-     main = expression(paste("Figure 13: BAC at C_0 vs Elimination Rate (", beta, ")")))
-
-# Add horizontal line for legal limit on C0 scale
-abline(h = C_legal, col = "darkgreen", lwd = 2, lty = 2)
-
-# Add vertical line at beta corresponding to legal limit
-abline(v = beta_limit, col = "darkgreen", lwd = 2, lty = 2)
-
-# Add marker for (beta_limit, C0 = 0.47)
-points(beta_limit, C_legal, pch = 19, col = "darkgreen", cex = 1.5)
-text(beta_limit, C_legal - 0.015, labels = expression(paste("(", beta[limit], ", ", C[legal], ")")), 
-     pos = 4, col = "darkgreen")
-
-# --- Overlay PDF curve (secondary y-axis) ---
-par(new = TRUE)
-plot(beta, pdf_beta, type = "n", axes = FALSE, xlab = "", ylab = "", ylim = c(0, max(pdf_beta)))
-
-# Shade area under the PDF curve for beta > beta_limit
-shade_idx <- beta >= beta_limit
-polygon(c(beta[shade_idx], rev(beta[shade_idx])),
-        c(pdf_beta[shade_idx], rep(0, sum(shade_idx))),
-        col = rgb(1, 0, 0, 0.3), border = NA)
-
-# Draw the full PDF line
-lines(beta, pdf_beta, col = "red", lwd = 2)
-
-# # Add secondary axis for density
-# axis(side = 4, col = "red", col.axis = "red")
-# mtext("Density of β", side = 4, line = 3, col = "red")
-
-# Add legend
-legend("topleft",
-       legend = c(expression(C[0] == C[t] + beta*t),
-                  expression("Legal limit"),
-                  expression("P(C"[0]*"> limit)")),
-       col = c("blue", "darkgreen", "red"),
-       lwd = c(2, 2, NA),
-       pch = c(NA, NA, 15),
-       pt.cex = 1.5,
-       bty = "n",
-       cex = 0.9,
-       fill = c(NA, NA, rgb(1,0,0,0.3)))
-
-```
 
 \newpage
 
 ## Applying Various Approaches
 
-To compare the performance of our different approaches outlined above we consider the following case study.
+To illustrate these methods, consider a 70-year-old female (weight: 70 kg, height: 160 cm) who provides a blood sample 2 hours after driving, with a measured BAC of $C_t = 0.15$ g/kg. The legal limit is 0.47 g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
 
-A 70 year old female (weight: 70kg, height: 160cm) is arrested after being stopped by the police while driving. She provides a blood sample to the police 2 hours after her arrest which gives a reading of Ct = 0.15g/kg (i.e. grams of alcohol per kilogram of blood). The legal limit is x = 0.47g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
+**1. Current Approach**
 
-We can find the $2.5%$ quantile of the different beta distributions. Why?
+Using $\beta = 0.126$ g/kg/h (the fixed 2.5th percentile):
+
+$$
+C_0 = 0.15 + 0.126 \times 2 = 0.402 \ g/kg
+$$
+*Verdict*: Below the legal limit.
+
+**2. Proposed Approach Using Gamma Distribution**
+
+The 95% uncertainty interval for $C_0$ is (0.40, 0.66) g/kg, and the probability that $C_0$ exceeded the legal limit is 75%. 
+
+*Verdict*: While the lower bound of the uncertainty interval (0.40 g/kg) is below the legal limit, there is a substantial probability (75%) that the individual's true BAC at the time of driving exceeded 0.47 g/kg. The current method would have concluded she was below the limit, but our analysis reveals considerable uncertainty in that conclusion.
+
+**3. Proposed Approach Using Quantile Regression**
+
+When we account for her specific characteristics (female, 70 kg, 160 cm, 70 years old), the 95% uncertainty interval is (0.34, 0.51) g/kg. The probability that $C_0$ exceeded the legal limit is 74%.
+
+**Comparison of Methods**
+
+The comparison of all three methods is shown in Table 4 and Figure 13, which clearly demonstrate how the current approach provides a single point estimate that masks substantial uncertainty.
 
 ```{r task_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=15, fig.height=10, fig.align='center'}
 
@@ -1106,8 +957,6 @@ kable(results_table, digits = 3,
       col.names = c("Approach", "Lower (2.5%)", "Central", "Upper (97.5%)"),
       caption = "Table 4: Comparison of estimated C₀ values for the various approaches")
 ```
-
-The legal limit is 0.47g/kg.
 
 ```{r approach comparison, echo = FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -1210,6 +1059,45 @@ geom_text(
 
 p
 ```
+
+
+**Recommended Report Format**
+
+We propose that forensic reports include a standardised summary table that presents all relevant information clearly and concisely:
+
+```{r echo=FALSE}
+
+# Create summary table
+summary_table <- data.frame(
+  Quantity = c(
+    "Measured BAC (C_t)",
+    "Time since driving (t)",
+    "Legal limit",
+    "Estimated C₀ (central)",
+    "95% uncertainty interval",
+    "Probability C₀ exceeded legal limit"
+  ),
+  Value = c(
+    "0.15 g/kg",
+    "2 hours",
+    "0.47 g/kg",
+    "0.43 g/kg",
+    "(0.34, 0.51) g/kg",
+    "74%"
+  )
+)
+
+kable(
+  summary_table,
+  caption = "Standardised Summary Table (Quantile Regression Approach)",
+  col.names = c("Quantity", "Value"),
+  align = c("l", "c"),
+  format = "markdown"
+)
+
+
+```
+
 
 \newpage
 
