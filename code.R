@@ -335,37 +335,6 @@ sqrt_lm_model <- lm(sqrt(beta) ~ weight + height + sex, data = data)
 par(mfrow = c(2,2))
 plot(sqrt_lm_model)
 
-# Create predicted values
-pred_data <- data
-
-# quantiles for lm
-resid_q025 <- quantile(residuals(lm_model), probs = 0.025)
-pred_data$lm_pred <- predict(lm_model)
-pred_data$lm_q025 <- pred_data$lm_pred + resid_q025
-
-# using quantile regression instead
-rq_model <- rq(beta ~ weight + height + sex, data = data, tau = 0.025)
-pred_data$rq_pred <- predict(rq_model)
-
-# Combine into a long format for ggplot
-plot_data <- pred_data %>%
-  tidyr::pivot_longer(cols = c(lm_q025, rq_pred),
-                      names_to = "model",
-                      values_to = "predicted_beta")
-
-# Plot
-quantile_v_lm_plot <- ggplot(plot_data, aes(x = beta, y = predicted_beta, color = model)) +
-  geom_point( size = 3) +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(
-    title = expression("Comparing Models for the 2.5% Quantile for "*beta),
-    x = expression("Actual "*beta),
-    y = expression("Predicted "*beta),
-    color = "Model Type"
-  ) +
-  scale_color_manual(values = c("lm_q025" = "orange", "rq_pred" = "darkred"),
-                     labels = c("Linear Regression", "Quantile Regression"))
-
 # compute group statistics
 stats <- data %>%
   group_by(Sex) %>%
@@ -375,52 +344,82 @@ stats <- data %>%
     q975 = quantile(beta60, 0.975)
   )
 
+# fit models
+lm_model <- lm(beta ~ weight + height + sex, data = data)
+rq_model <- rq(beta ~ weight + height + sex, data = data, tau = 0.025)
+
+# predictions for linear model
+pred_int <- predict(lm_model, newdata = data, interval = "prediction", level = 0.95)
+
+# create df for comparing predicted vs actual
+pred_data <- data %>%
+  mutate(
+    lm_pred_mean = pred_int[, "fit"],   # mean OLS prediction
+    lm_pred_lwr  = pred_int[, "lwr"],   # 2.5% prediction interval (lower)
+    lm_pred_upr  = pred_int[, "upr"]    # 97.5% prediction interval (upper)
+  )
+
+# add empirical 2.5% quantile of residuals to find 2.5% quantile of linear model
+resid_q025 <- quantile(residuals(lm_model), probs = 0.025)
+pred_data <- pred_data %>%
+  mutate(lm_q025 = lm_pred_mean + resid_q025)
+
+# quantile regression predictions
+pred_data$rq_pred <- predict(rq_model, newdata = data)
+
+# reshape
+plot_data <- pred_data %>%
+  pivot_longer(
+    cols = c(lm_pred_mean, lm_q025, rq_pred),
+    names_to = "model",
+    values_to = "predicted_beta"
+  )
+
+# plot
+quantile_v_lm_plot <- ggplot() +
+  # 95% prediction interval shaded area (between lm_pred_lwr and lm_pred_upr)
+  geom_ribbon(
+    data = pred_data,
+    aes(x = beta, ymin = lm_pred_lwr, ymax = lm_pred_upr),
+    fill = "lightblue", alpha = 0.25
+  ) +
+  # Points for models (mean LM, quantile LM, quantile regression)
+  geom_point(
+    data = plot_data,
+    aes(x = beta, y = predicted_beta, color = model),
+    alpha = 0.6, size = 2
+  ) +
+  # Linear trend lines for clarity
+  geom_smooth(
+    data = plot_data,
+    aes(x = beta, y = predicted_beta, color = model),
+    method = lm, se = TRUE, linewidth = 1
+  ) +
+  # 1:1 line
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  # Manual colors and labels
+  scale_color_manual(
+    values = c(
+      "lm_pred_mean" = "blue",
+      "lm_q025"      = "gold",
+      "rq_pred"      = "darkred"
+    ),
+    labels = c(
+      "lm_pred_mean" = "Linear Model (Mean Prediction)",
+      "lm_q025"      = "2.5% Quantile of Linear Model Residuals",
+      "rq_pred"      = "Quantile Regression (τ = 0.025)"
+    )
+  ) +
+  # Labels and theme
+  labs(
+    title = expression("Figure 12: Actual vs Predicted " * beta * " with 95% Prediction Interval"),
+    x = expression("Actual " * beta),
+    y = expression("Predicted " * beta),
+    color = "Model Type"
+  )
+
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TASK 2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-# setup from question
-test_person <- data.frame(weight = 70, height = 160, age = 70, sex = "female")
-Ct <- 0.15
-t  <- 2
-
-# empirical quantiles for Beta60 (population approach)
-beta_pop <- quantile(data$beta, probs = c(0.025, 0.5, 0.975))
-
-# C0 values using population quantiles
-C0_pop <- Ct + beta_pop * t
-
-# gamma fitted whole population distribution
-gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), gamma_shape, gamma_rate)
-C0_gamma <- Ct + gamma_quantiles * t
-
-# gamma fitted to males
-m_gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), m_gamma_shape, m_gamma_rate)
-C0_gamma_m <- Ct + m_gamma_quantiles * t
-
-# gamma fitted to females
-f_gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), f_gamma_shape, f_gamma_rate)
-C0_gamma_f <- Ct + f_gamma_quantiles * t
-
-# predicted Beta using regression model
-lm_pred_vals <- predict(lm_model, newdata = test_person, interval = "prediction", level = 0.95)
-
-# C0 values from regression model
-beta_pred_lm <- as.numeric(lm_pred_vals)
-names(beta_pred_lm) <- c("Fitted", "Lower (PI 2.5%)", "Upper (PI 97.5%)")
-C0_lm <- Ct + beta_pred_lm * t
-
-# predicted beta using quantile regression model
-rq_pred_vals <- predict(rq_model, newdata = test_person, interval = "confidence", level = 0.95)
-C0_rq <- Ct + rq_pred_vals * t
-
-# combine results into one comparison table 
-results_table <- tibble(
-  Approach = c("Population (empirical quantiles)", "Gamma Fitted", "Male Gamma Fitted", "Female Gamma Fitted", "Linear Regression", "Quantile Regression"),
-  Lower_2.5 = c(C0_pop[1], C0_gamma[1], C0_gamma_m[1], C0_gamma_f[1], C0_lm[2], C0_rq[2]),  # note ordering: lwr=2nd col in pred
-  Central   = c(C0_pop[2], C0_gamma[2], C0_gamma_m[2], C0_gamma_f[2], C0_lm[1], C0_rq[1]),
-  Upper_97.5 = c(C0_pop[3], C0_gamma[3], C0_gamma_m[3], C0_gamma_f[3], C0_lm[3], C0_rq[3])
-)
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%% ALTERNATE RESULT APPROACHES %%%%%%%%%%%%%%%%%%%%
 
 # Given parameters
 Ct <- 0.15         # measured concentration (g/kg)
@@ -458,6 +457,7 @@ C0_sd   <- sd(C0_samples)
 # Create summary table
 results <- data.frame(
   Statistic = c(
+    "Interval length",
     "Lower 95% bound for C₀",
     "Upper 95% bound for C₀",
     "Analytical P(C₀ > 0.47 g/kg)",
@@ -466,6 +466,7 @@ results <- data.frame(
     "SD of simulated C₀"
   ),
   Value = c(
+    round(C0_upper - C0_lower, 3),
     round(C0_lower, 3),
     round(C0_upper, 3),
     round(p_over_limit, 3),
@@ -475,29 +476,89 @@ results <- data.frame(
   )
 )
 
+kable(
+  results,
+  caption = "Table 2: Summary of Back-Calculated Blood-Alcohol Concentration (C₀) Using Gamma Approach",
+  col.names = c("Statistic", "Value"),
+  align = c("l", "c"),
+  format = "markdown"
+)
+
+# Fit quantile regression models for beta
+rq_lower  <- rq(beta ~ weight + age + sex, data = data, tau = 0.025)
+rq_upper  <- rq(beta ~ weight + age + sex, data = data, tau = 0.975)
+
+# Predict quantile values of beta for each observation
+beta_q025 = predict(rq_lower,  newdata = data)
+beta_q975 = predict(rq_upper,  newdata = data)
+
+# Compute 95% interval for C0 for each observation
+C0_lower = Ct + mean(beta_q025) * t
+C0_upper = Ct + mean(beta_q975) * t
+C0_interval <- c(C0_lower, C0_upper)
+
+# Monte Carlo-style resampling from the quantile predictions
+set.seed(123)
+n_sim <- 1000
+# approximate sampling of beta between 2.5% and 97.5% quantiles
+beta_samples <- runif(n_sim, min = mean(beta_q025), max = mean(beta_q975))
+C0_samples <- Ct + beta_samples * t
+
+# Probability that C0 exceeded the legal limit x
+p_over_limit_sim <- mean(C0_samples > x)
+
+# Summaries
+C0_mean <- mean(C0_samples)
+C0_sd   <- sd(C0_samples)
+
+# Create summary table
+results <- data.frame(
+  Statistic = c(
+    "Interval Length",
+    "Lower 95% bound for C₀",
+    "Upper 95% bound for C₀",
+    "Simulated P(C₀ > 0.47 g/kg)",
+    "Mean of simulated C₀",
+    "SD of simulated C₀"
+  ),
+  Value = c(
+    round(C0_upper - C0_lower, 3),
+    round(C0_lower, 3),
+    round(C0_upper, 3),
+    round(p_over_limit_sim, 3),
+    round(C0_mean, 3),
+    round(C0_sd, 3)
+  )
+)
+
+kable(
+  results,
+  caption = "Table 3: Summary of Back-Calculated Blood-Alcohol Concentration using Quantile Regression (C₀)",
+  col.names = c("Statistic", "Value"),
+  align = c("l", "c"),
+  format = "markdown"
+)
+
 # Parameters
 gamma_shape <- 31.9538
-gamma_rate <- 173.7079
+gamma_rate  <- 173.7079
 
-# Compute 2.5th and 97.5th percentiles of beta
+# Quantiles for beta
 beta_q025 <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
 beta_q975 <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
 
-# Current concentration
+# Case-specific parameters
 C_t <- 0.15
 t <- 2
+C_legal <- 0.47
 
-# Legal limit for C0
-C_legal <- 0.47        
+# Derived beta that yields legal limit for C0
+beta_limit <- (C_legal - C_t) / t
 
-# Derived beta that would reach legal limit
-beta_limit <- (C_legal - C_t)/t
-
-# Define range of beta
-# beta <- seq(0, 0.5, length.out = 1000)
+# Sequence of beta values
 beta <- seq(beta_q025, beta_q975, length.out = 1000)
 
-# Calculate C0
+# Corresponding C0 values
 C0 <- C_t + beta * t
 
 # Gamma PDF for beta
@@ -506,25 +567,134 @@ pdf_beta <- dgamma(beta, shape = gamma_shape, rate = gamma_rate)
 # Plot C0 vs beta
 plot(beta, C0, type = "l", lwd = 2, col = "blue",
      xlab = expression(beta), ylab = expression(C[0]),
-     main = expression(paste(C[0], " vs ", beta)))
+     main = expression(paste("Figure 13: BAC at C_0 vs Elimination Rate (", beta, ")")))
 
-# Add vertical line at derived beta_limit
+# Add horizontal line for legal limit on C0 scale
+abline(h = C_legal, col = "darkgreen", lwd = 2, lty = 2)
+
+# Add vertical line at beta corresponding to legal limit
 abline(v = beta_limit, col = "darkgreen", lwd = 2, lty = 2)
 
-# Shading for beta values that make C0 > C_legal
-beta_shade <- beta[beta > beta_limit]
-C0_shade <- C0[beta > beta_limit]
+# Add marker for (beta_limit, C0 = 0.47)
+points(beta_limit, C_legal, pch = 19, col = "darkgreen", cex = 1.5)
+text(beta_limit, C_legal - 0.015, labels = expression(paste("(", beta[limit], ", ", C[legal], ")")), 
+     pos = 4, col = "darkgreen")
 
-polygon(c(beta_shade, rev(beta_shade)),
-        c(rep(min(C0), length(beta_shade)), rev(C0_shade)),
+# --- Overlay PDF curve (secondary y-axis) ---
+par(new = TRUE)
+plot(beta, pdf_beta, type = "n", axes = FALSE, xlab = "", ylab = "", ylim = c(0, max(pdf_beta)))
+
+# Shade area under the PDF curve for beta > beta_limit
+shade_idx <- beta >= beta_limit
+polygon(c(beta[shade_idx], rev(beta[shade_idx])),
+        c(pdf_beta[shade_idx], rep(0, sum(shade_idx))),
         col = rgb(1, 0, 0, 0.3), border = NA)
 
-# Add Gamma PDF on secondary y-axis
-par(new = TRUE)
-plot(beta, pdf_beta, type = "l", lwd = 2, col = "red",
-     axes = FALSE, xlab = "", ylab = "")
-axis(side = 4, col = "red", col.axis = "red")
-mtext("Density", side = 4, line = 3, col = "red")
+# Draw the full PDF line
+lines(beta, pdf_beta, col = "red", lwd = 2)
+
+# # Add secondary axis for density
+# axis(side = 4, col = "red", col.axis = "red")
+# mtext("Density of β", side = 4, line = 3, col = "red")
+
+# Add legend
+legend("topleft",
+       legend = c(expression(C[0] == C[t] + beta*t),
+                  expression("Legal limit"),
+                  expression("P(C"[0]*"> limit)")),
+       col = c("blue", "darkgreen", "red"),
+       lwd = c(2, 2, NA),
+       pch = c(NA, NA, 15),
+       pt.cex = 1.5,
+       bty = "n",
+       cex = 0.9,
+       fill = c(NA, NA, rgb(1,0,0,0.3)))
+
+
+# 1. Current approach (fixed beta)
+beta_fixed <- 0.126
+C0_fixed   <- Ct + beta_fixed * t
+p_fixed    <- as.numeric(C0_fixed > x_limit) 
+
+# 2. Gamma model (use report MLEs)
+gamma_shape <- 31.9538
+gamma_rate  <- 173.7079
+
+beta_q025_gamma <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
+beta_q975_gamma <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
+
+C0_gamma_lower <- Ct + beta_q025_gamma * t
+C0_gamma_upper <- Ct + beta_q975_gamma * t
+C0_gamma_mean  <- mean(c(C0_gamma_lower, C0_gamma_upper))
+
+# Probability analytically from Gamma CDF
+beta_threshold <- (x_limit - Ct) / t
+p_gamma <- 1 - pgamma(beta_threshold, shape = gamma_shape, rate = gamma_rate)
+
+# 3. Quantile regression approach (population-average bands)
+# Fit lower/upper quantile regression for beta
+rq_lower <- rq(beta ~ weight + age + sex, data = data, tau = 0.025)
+rq_upper <- rq(beta ~ weight + age + sex, data = data, tau = 0.975)
+
+# Predict β quantiles for each observation in the dataset
+beta_q025_qr <- as.numeric(predict(rq_lower, newdata = data))
+beta_q975_qr <- as.numeric(predict(rq_upper, newdata = data))
+
+# Summarize Co interval by averaging β quantiles across the population 
+C0_qr_lower <- Ct + mean(beta_q025_qr, na.rm = TRUE) * t
+C0_qr_upper <- Ct + mean(beta_q975_qr, na.rm = TRUE) * t
+C0_qr_mean  <- mean(c(C0_qr_lower, C0_qr_upper))
+
+p_qr <- p_over_limit_sim
+
+# plot
+results_df <- tibble(
+  Method = c("Current (Fixed β=0.126)", "Gamma model", "Quantile regression"),
+  Lower  = c(C0_fixed, C0_gamma_lower, C0_qr_lower),
+  Upper  = c(C0_fixed, C0_gamma_upper, C0_qr_upper),
+  Mean   = c(C0_fixed, C0_gamma_mean, C0_qr_mean),
+  Prob   = c(p_fixed, p_gamma, p_qr)
+)
+
+# Plot
+p <- ggplot(results_df, aes(y = Method)) +
+  # Interval bands (thin lines)
+  geom_segment(aes(x = Lower, xend = Upper, y = Method, yend = Method,
+                   colour = Method), linewidth = 2) +
+  # Endpoints for clarity
+  geom_point(aes(x = Lower, colour = Method), size = 3) +
+  geom_point(aes(x = Upper, colour = Method), size = 3) +
+  # Mean point
+  geom_point(aes(x = Mean, colour = Method), size = 10, shape = 18) +
+  # Legal limit line
+  geom_vline(xintercept = x_limit, linetype = "dashed",
+             colour = "darkgreen", linewidth = 1) +
+  annotate("text", x = x_limit + 0.01, y = 3.3,
+           label = "Legal limit = 0.47 g/kg",
+           colour = "darkgreen", hjust = 0, size = 9) +
+  annotate("rect", xmin = x_limit - 0.005, xmax = x_limit + 0.005,
+           ymin = 0.5, ymax = 3.5, alpha = 0.1, fill = "darkgreen") +
+  # Probability labels (skip Current approach)
+  # Probability labels (skip Current approach)
+  geom_text(
+    data = subset(results_df, Method != "Current (Fixed β=0.126)"),
+    aes(x = Upper, 
+        y = Method, 
+        label = sprintf("P(C[0] > 0.47) == %.3f", Prob)),
+    parse = TRUE,
+    hjust = 1,
+    vjust = 1.5,
+    size = 9,
+    colour = "black"
+  ) +
+  scale_x_continuous(name = expression(C[0]~"(g/kg)"),
+                     limits = c(0.35, 0.72),
+                     expand = c(0, 0)) +
+  scale_colour_manual(values = c("Current (Fixed β=0.126)" = "grey60",
+                                 "Gamma model"             = "firebrick",
+                                 "Quantile regression"     = "hotpink"),
+                      name = "Method") +
+  ggtitle(expression("Comparison of reporting frameworks for " * C[0]))
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TASK 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

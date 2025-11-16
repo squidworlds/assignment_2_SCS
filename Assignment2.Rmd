@@ -69,7 +69,11 @@ data$age <- data$`Age (years)`
 data$beta <- -data$beta60
 ```
 
-<p style="font-size:2em; font-weight:bold;">Contents</p>
+<p style="font-size:2em; font-weight:bold;">
+
+Contents
+
+</p>
 
 ::: {#custom-toc}
 :::
@@ -89,31 +93,39 @@ document.addEventListener("DOMContentLoaded", function() {
 
 # Executive Summary
 
-In this statistical report, we investigate the techniques used by the forensic services at Police Scotland on blood alcohol computations in criminal cases associated with drink driving. In UK law, it is an offence to drive with blood alcohol concentration (BAC) above the prescribed limit. Since alcohol levels fall over time, the measured BAC at the police station is lower than at the time of driving; forensic scientists ‘back-calculate’ the earlier level using an elimination rate [@FSR2020].
+In this report we investigate the statistical techniques used by the forensic services at Police Scotland on blood alcohol computations in criminal cases associated with drink driving. In UK law, it is an offence to drive with blood alcohol concentration (BAC) above the prescribed limit (0.47g/kg). Since alcohol levels fall over time, the measured BAC at the police station is lower than at the time of driving; forensic scientists ‘back-calculate’ the earlier level using an elimination rate [@FSR2020].
 
-The first method implemented by Police Scotland is the so-called $\beta$ elimination rate, which measures how quickly alcohol is eliminated from the bloodstream. Using available data, a distribution for $\beta$ can be constructed, and the 2.5th and 97.5th percentiles of this distribution are used as the limits for this range. Currently, if an individual has a blood alcohol concentration above the legal limit, calculated using the lower 2.5th percentile of the $\beta$ distribution, the forensic team concludes that they are above the limit. We assessed whether this approach fairly represents uncertainty and whether a clearer reporting standard could improve transparency.
+The current method implemented by Police Scotland incorporates the $\beta$ elimination rate, a measure of how quickly alcohol is eliminated from the bloodstream. A fixed range for $\beta$ is applied across all individuals, using the 2.5th percentile of the distribution as a conservative cutoff. If the back‑calculated BAC exceeds the legal limit under this assumption, the individual is reported as over the limit. While simple, this binary approach does not reflect the variability of $\beta$ across individuals or the uncertainty inherent in the calculation.
 
-Using the provided dataset, we examined how $\beta$ varies based on individual characteristics (weight, height, age, sex) and compared several modelling strategies: using empirical percentiles, parametric fitting, sex-specific shifts, linear models, and quantile regression for the 2.5% of $\beta$.
+Using the provided dataset of 100 individuals [@thesis], we examined how $\beta$ varies based on individual characteristics (weight, height, age, sex). We found that there us significant negative correlations between $\beta$and both weight and height, a clear sex-specific difference, with males typically showing high elimination rates. Further, we found age has little influence on $\beta$.
 
-In practice, we found that $\beta$ shows significant variation across individuals, suggesting treating $\beta$ as a single fixed range for everyone ignores these variabilities. Further, estimates are better represented with uncertainty rather than using a single cutoff, as is currently implemented. These findings support the idea that estimates should be coupled with uncertainty, and that a probability of exceeding the legal limit, rather than a binary verdict seems a more fitting approach.
+We then applied these findings by comparing several modelling strategies:
+
+-   **Parametric Distributions**: Gamma provided the most accurate fit to the observed $\beta$ values.
+
+-   **Linear models**: Useful approach for incorporating predictors, though a violation of assumptions was apparent.
+
+-   **Quantile Regression**: A more appropriate approach when estimating the lower tail of $\beta$, as used in back-calculations.
+
+We propose replacing the current binary cutoff with a probabilistic and interval-based framework: providing the probability that the BAC at the time of driving exceeded the legal limit, along with a 95% credible interval for the back-calculated BAC.
+
+As an example, we found that under the current approach an individual would be deemed not over the limit, whereas our suggested approaches provide respective probabilities of 76% and 75% that they were indeed over the limit - revealing a substantial likelihood that the individual was above the legal threshold, in contrast to the binary conclusion under current practice.
 
 We also considered situations where no blood sample is available and Widmark’s equation must be used along with eyewitness dose, which introduces the volume of distribution $V_d$. The standard approach treats $\beta$ and $V_d$ as independent and applies fixed percentile ranges for both.
 
-We found that $V_d$ and $\beta$ are negatively correlated in the data. The common practice of combining extreme marginal percentiles for $\beta$ and $V_d$ while assuming independence can therefore produce implausible joint scenarios.
+We found $V_d$ and $\beta$ to be negatively correlated, meaning treating them as independent and combining extreme marginal percentiles can lead to implausible scenarios. Hence, we suggest reports should acknowledge this relationship and avoid the assumption of independence.
 
-Based on our findings, we encourage expert reports used in jurisdiction cases to include:
+In conclusion, our findings support a shift towards a probabilistic reporting framework in forensic alcohol analysis. We recommend expert witness reports should include:
 
--   the measured BAC
+-   Measured BAC and elapsed time since driving.
 
--   the elapsed time since driving
+-   The back-calculated BAC at the time of driving with a 95% uncertainty interval.
 
--   the estimated BAC at time of driving ($C_0$)
+-   The probability of exceeding the legal limit.
 
--   a 95% uncertainty interval for $C_0$ derived from the fitted $\beta$ distribution
+-   Clear disclosure of assumptions about $\beta$ and $V_d$ when applicable, including their correlation.
 
--   the probability that $C_0$ exceeded the legal limit.
-
-Further, we recommend that when Widmark's equation is used, reports should specify the assumed distributions for $\beta$ and $V_d$, along with acknowledgement of their relationship.
+This approach ultimately enhances transparency, communicates uncertainty, and provides courts with a mode scientifically defensible basis for decision making.
 
 \newpage
 
@@ -347,7 +359,7 @@ Thesefigures can point us towards a few different distributions. We can analyse 
 
 #### Residual Plots of Fitted Distributions
 
-The aim of finding a distribution to fit $\beta$ is to smooth out the distribution to decrease the influence of a few outliers in the original dataset, as there are only 100 values. That means that a single datapoint can skew the $2.5%$ quantile that we are aiming to find. We are also focused on simplicity, so have only looked at 3 different distributions that have the general shape of the data, shown in the figures in the section above. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs below.
+The aim of finding a distribution to fit $\beta$ is to smooth out the distribution to decrease the influence of a few outliers in the original dataset, as there are only 100 values. That means that a single datapoint can skew the 2.5th quantile that we are aiming to find. We are also focused on simplicity, so have only looked at 3 different distributions that have the general shape of the data, shown in the figures in the section above. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs below.
 
 ```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
@@ -449,7 +461,7 @@ gamma_rate <- gamma_fit$estimate[[2]]
 q025 <- qgamma(0.025, gamma_shape, gamma_rate)
 ```
 
-The 2.5% quantile in the gamma distribution of $\beta$ is 0.1257847. The density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
+The 2.5th quantile in the gamma distribution of $\beta$ is 0.1257847. The density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
 
 ```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
 gamma_df <- data.frame(
@@ -925,13 +937,9 @@ C0_pop <- Ct + beta_pop * t
 gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), gamma_shape, gamma_rate)
 C0_gamma <- Ct + gamma_quantiles * t
 
-# gamma fitted to males
-m_gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), m_gamma_shape, m_gamma_rate)
-C0_gamma_m <- Ct + m_gamma_quantiles * t
+-   the current empirical (population) based approach, with a binary decision;
 
-# gamma fitted to females
-f_gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), f_gamma_shape, f_gamma_rate)
-C0_gamma_f <- Ct + f_gamma_quantiles * t
+-   our suggested Gamma distribution approach, with a probabilistic decision approach, and corresponding confidence interval;
 
 # predicted Beta using regression model
 lm_pred_vals <- predict(lm_model, newdata = test_person, interval = "prediction", level = 0.95)
@@ -999,14 +1007,7 @@ C0_qr_lower <- Ct + mean(beta_q025_qr, na.rm = TRUE) * t
 C0_qr_upper <- Ct + mean(beta_q975_qr, na.rm = TRUE) * t
 C0_qr_mean  <- mean(c(C0_qr_lower, C0_qr_upper))
 
-# Approximate P(Co > limit) under QR
-set.seed(123)
-n_sim <- 10000
-# Sample indices and uniform draws between predicted bounds
-idx <- sample(seq_along(beta_q025_qr), size = n_sim, replace = TRUE)
-beta_samples_qr <- runif(n_sim, min = beta_q025_qr[idx], max = beta_q975_qr[idx])
-C0_samples_qr   <- Ct + beta_samples_qr * t
-p_qr <- mean(C0_samples_qr > x_limit, na.rm = TRUE)
+p_qr <- p_over_limit_sim
 
 # plot
 results_df <- tibble(
@@ -1041,7 +1042,7 @@ geom_text(
   data = subset(results_df, Method != "Current (Fixed β=0.126)"),
   aes(x = Upper, 
       y = Method, 
-      label = sprintf("P(C[0] > 0.47) == %.2f", Prob)),
+      label = sprintf("P(C[0] > 0.47) == %.3f", Prob)),
   parse = TRUE,
   hjust = 1,
   vjust = 1.5,
@@ -1257,7 +1258,7 @@ ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
 
 ```
 
-From the correlation test, we find that there is an observed correlation of -0.404, and the null hypothesis that the true correlation is equal to zero, i.e. the two measures are independent, can be confidently rejected as there is a corresponding p-value of $3.122\times10^{-5}$.
+From the correlation test, we find that there is an observed correlation of -0.404, and the null hypothesis that the true correlation is equal to zero, i.e. the two measures are independent, can be confidently rejected as there is a corresponding p-value of 3.122x10⁻⁵.
 
 Figure 10 further highlights this clear relationship between the two measures, and hence the independence assumption appears to be violated.
 
@@ -1267,7 +1268,7 @@ The current method offers several key strengths that make it well-suited for for
 
 ### Limitations of Current Method
 
-The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, a Pearson's product-moment correlation analysis reveals a statistically significant negative correlation between these two parameters (correlation coefficient = -0.404, p-value = $3.122\times10^{-5}$ \< 0.05). This finding directly contradicts the independence assumption underlying the current approach.
+The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, a Pearson's product-moment correlation analysis reveals a statistically significant negative correlation between these two parameters (correlation coefficient = -0.404, p-value = 3.122x10⁻⁵ \< 0.05). This finding directly contradicts the independence assumption underlying the current approach.
 
 Although the official forensic procedure specifies using the 97.5th percentile for both $\beta$ and $V_d$, this convention is based on policy rather than mathematical reasoning. Forensic laboratories apply the same "upper percentile rule" across all parameters to maintain consistency and to err on the side of caution, as using higher parameter values for $\beta$ and $V_d$ generally produces lower blood alcohol estimates. Mathematically Widmark's equation shows that $C_t$ decreases as $\beta$ and $V_d$ both increase, thus the maximum possible value of $C_t$ would occur for low $\beta$ and low $V_d$ values (their 2.5th percentiles). Regardless of which tail is used, the critical statistical issue with the current method is that it assumes that $\beta$ and $V_d$ are independent, when our analysis shows that $\beta$ and $V_d$ have a significant negative correlation.
 
