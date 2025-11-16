@@ -202,7 +202,7 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
   geom_boxplot(width = 0.2, color = "navy", alpha = 0.7) +
   scale_fill_manual(values = c("seagreen", "skyblue")) +
   labs(
-    title = "Figure 4: β vs Gender",
+    title = "Figure 4: β vs Sex",
     x = "Gender",
     y = "β Elimination Rate (g/kg/h)"
   ) +
@@ -259,7 +259,7 @@ Due to the clear relationships between $\beta$ and characteristics of the tested
 
 ## Modelling Beta
 
-### Finding Distribution Method
+### Distribution Fitting Method
 
 A key issue with creating a distribution from the $\beta$ elimination rate values is that this distribution is based on the metabolism and behaviour of 100 individuals. Therefore there is a risk that it fails to capture the general trend of the whole population of Scotland. We propose instead investigating if values of $\beta$ can be taken from a standard distribution. First, we will examined the general spread of $\beta$ values given in the Figure 5, where the mean, 2.5th, and 97.5th quantiles are indicated in red.
 
@@ -357,7 +357,7 @@ sex_density_plot <- ggplot(data, aes(x = beta, fill = sex)) +
 sex_density_plot
 ```
 
-Figures 5 and 6 can point us towards a few different distributions. We can analyse how well the data fits these distributions in the following plots.
+Figures 5 and 6 can point us towards a few different distributions. We can analyse how well the data fits these distributions in the residuals.
 
 #### Residual Plots of Fitted Distributions
 
@@ -455,7 +455,7 @@ mtext("Figure 7: Comparison of Fitted Distributions", outer = TRUE, cex = 3, fon
 
 -   `P-P plot`: Majority of points lie on fitted line.
 
-After looking at the residuals, we conclude that Gamma is the most appropriate distribution for our $\beta$ with the fitting method. The fitted distribution is described as $\beta \sim \text{Gamma}(\alpha = 31.9538, \lambda = 173.7079)$.
+After looking at the residuals, we conclude that Gamma is the most appropriate distribution for our $\beta$ with the fitting method. The fitted distribution is described as $\beta \sim \text{Gamma}(\alpha = 31.9538, \lambda = 173.7079)$ to 7 significant figures.
 
 The density graph of the gamma distribution across the whole population of Gamma is shown in Figure 8 to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
 
@@ -604,22 +604,21 @@ sex_gamma_plot <- ggplot(data, aes(x = beta)) +
 sex_gamma_plot
 ```
 
-We have two distributions for our data, $\beta_{male} \sim \text{Gamma}(\alpha = 36.15709, \lambda = 207.8306)$ and $\beta_{female} \sim \text{Gamma}(\alpha = 40.00287, \lambda = 199.7688)$. This is an improvement of the gamma fit on the whole population, as we are able to more accurately predict the confidence interval of alcohol elimination rate of our suspect. For Police Scotland, this is vital as we are using as much information as we have at our disposal to make a conclusion in the case.
+We have two distributions for our data, $\beta_{male} \sim \text{Gamma}(\alpha = 36.15709, \lambda = 207.8306)$ and $\beta_{female} \sim \text{Gamma}(\alpha = 40.00287, \lambda = 199.7688)$, all parameters to 7 significant figures. This is an improvement of the Gamma fit on the whole population, as we are able to more accurately predict the confidence interval of alcohol elimination rate of our suspect. For Police Scotland, this is vital as we are using as much information as we have at our disposal to make a conclusion in the case.
 
 ### Linear Model Method
 
-While fitting a distribution by sex has allowed us to take more information on the suspect, without overfitting to a small dataset, sex is not the only information given to the police. By creating a linear model, we can create a distribution for $\beta$ given a range of information about the suspect. In this case, this information can be discrete or continuous.
+While fitting a distribution by sex has allowed us to take more information on the suspect, without overfitting to a small dataset, sex is not the only information given to the police. By creating a linear model, we can create a distribution for $\beta$ given a range of information about the suspect. In this case, the explanatory variables can be discrete or continuous.
 
-We can create the following model, where $\beta_j$ represent the coefficients for $j \in \{0, ..., 4\}$ to model $Y_i$, the $i$ datapoints of $\beta$:
+From the exploratory data analysis in Figures 1-4, we can deduce that weight, height and sex all cause a linear downward trend in $\beta$. However, we see that age has little impact. When creating our model we are focusing on balancing accuracy and simplicity. Therefore we can create the following model, where $\alpha_j$ represent the coefficients for $j \in \{0, 1, 2, 3\}$ to model $Y_i$, the $i = 100$ datapoints of blood alcohol elimination rate $\beta$:
 
 $$
 \begin{aligned}
 \text{linear model}: \quad 
-Y_i &= \beta_0 
-+ \beta_1\text{weight}_i 
-+ \beta_2\text{age}_i 
-+ \beta_3\text{height}_i 
-+ \beta_4\text{sex}_i
+Y_i &= \alpha_0 
++ \alpha_1\text{weight}_i
++ \alpha_2\text{height}_i 
++ \alpha_3\text{sex}_i
 + \epsilon_i, \\
 \epsilon_i &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
 \end{aligned}
@@ -656,22 +655,21 @@ mtext("Figure 10: Residual Plots for Linear Model", outer = TRUE, cex = 3, font 
 
 -   `Residuals vs Leverage`: This plot gives us Cook’s distance, which measures the change in all model fitted values on omission of the data point in question. From the plot we can see there are no outliers, so there aren't any highly influential points in our data.
 
-To try to resolve these violations of the assumptions on residuals, we can create an alternative linear model. Given that there is a quadratic shape in the `Residuals vs Fitted` graph, we create the following linear model.
+To try to resolve these violations of the assumptions on residuals, we can create an alternative linear model. Given that there is a quadratic shape in the `Residuals vs Fitted` graph, we create the following linear model, where $\alpha_j$ represent the new coefficients for $j \in \{0, 1, 2, 3\}$ to model $Y_i$, the $i = 100$ datapoints of blood alcohol elimination rate $\beta$:
 
 $$
 \begin{aligned}
 \text{square root linear model}: \quad 
-\sqrt{Y_i} &= \beta_0 
-+ \beta_1\text{weight}_i 
-+ \beta_2\text{age}_i 
-+ \beta_3\text{height}_i 
-+ \beta_4\text{sex}_i
+\sqrt{Y_i} &= \alpha_0 
++ \alpha_1\text{weight}_i 
++ \alpha_2\text{height}_i 
++ \alpha_3\text{sex}_i
 + \epsilon_i, \\
 \epsilon_i &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
 \end{aligned}
 $$
 
-We get the following residual graphs.
+We get the residual graphs in Figure 11.
 
 ```{r lm, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
@@ -698,9 +696,11 @@ The `Q-Q Residuals` plot is improved, however there is only marginal change in t
 
 ### Quantile Linear Model Method
 
-The biggest issue with the linear model above for use in our project is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model. The aim of our analysis is to find the 2.5% quantile of $\beta$. It is more accurate to use quantile regression [@RodriguezYao2017]. We use the same linear model as above.
+The biggest issue with the linear model above for use in our project is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model (weight, height and sex). The aim of our analysis is to find a threshold of $\beta$ that can be used to determine if a suspect had high blood alcohol levels while driving. Therefore we want to investigate further than the expectation, $E(\beta | x)$, and examine the spread of the whole conditional distribution. When investigating quantiles of linear models, it is more accurate to use quantile regression [@RodriguezYao2017]. As the square root made little difference, we adapt our quantile regression from the initial linear model above.
 
-Quantile of whole distribution of y\|x, instead of quantile of expectation of y\|x.
+To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method discussed in the section above, we have to find $E(\beta | x) + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results. 
+
+The subtle differences between the methods produce different final results, as shown in Figure 12.
 
 ```{r comparing_rq, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -763,7 +763,7 @@ quantile_v_lm_plot <- ggplot() +
   ) +
   # Labels and theme
   labs(
-    title = expression("Figure 12: Actual vs Predicted " * beta * " with 95% Prediction Interval"),
+    title = expression("Figure 12: Actual vs Predicted 2.5% quantile of " * beta),
     x = expression("Actual " * beta),
     y = expression("Predicted " * beta),
     color = "Model Type"
@@ -772,8 +772,6 @@ quantile_v_lm_plot <- ggplot() +
 # display
 quantile_v_lm_plot
 ```
-
-While it may look like taking the 2.5% quantile of the linear model, and using the quantile regression model produce very similar results, the methods are different. To find the 2.5% quantile of the linear model, we find the 2.5% quantile of the residuals, and add that onto $E(\beta | x)$ predicted by our model. This assumes homoscedaticity, that the residuals are independent of predictors, and we have shifted the line uniformly, without taking into account how residual quantile could change across the data [@RodriguezYao2017]. Our quantile regression method does not have a homoscedaticity assumption, which is more reasonable, especially as the residual plots of our linear model are questionable in upholding the homoscedaticity assumption.
 
 \newpage
 
@@ -1016,7 +1014,7 @@ p_qr <- mean(C0_samples_qr > x_limit, na.rm = TRUE)
 
 # plot
 results_df <- tibble(
-  Method = c("Current (Fixed β=0.126)", "Gamma model", "Quantile regression"),
+  Method = c("Current (Fixed β = 0.126)", "Gamma model", "Quantile regression"),
   Lower  = c(C0_fixed, C0_gamma_lower, C0_qr_lower),
   Upper  = c(C0_fixed, C0_gamma_upper, C0_qr_upper),
   Mean   = c(C0_fixed, C0_gamma_mean, C0_qr_mean),
@@ -1265,7 +1263,7 @@ ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
 
 From the correlation test, we find that there is an observed correlation of -0.404, and the null hypothesis that the true correlation is equal to zero, i.e. the two measures are independent, can be confidently rejected as there is a corresponding p-value of 3.122x10⁻⁵.
 
-Figure 10 further highlights this clear relationship between the two measures, and hence the independence assumption appears to be violated.
+Figure 19 further highlights this clear relationship between the two measures, and hence the independence assumption appears to be violated.
 
 ### Advantages of Current Method
 
@@ -1295,7 +1293,7 @@ ggplot(data, aes(x = beta, y = Vd)) +
     title = "Figure 20: Joint Distribution of β and Vd",
     subtitle = "Blue lines show marginal 97.5th percentiles",
     x = "β (g/kg/h)",
-    y = "Vd (L/kg)"
+    y = "V_d (L/kg)"
   ) +
   annotate("text", 
            x = quantile(data$beta, 0.975, na.rm = TRUE), 
@@ -1321,7 +1319,7 @@ t <- 2
 data$Ct_joint <- (A / (weight * data$Vd)) - data$beta * t
 
 # Compute the quantiles of C_t
-quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975), na.rm = TRUE)
+ct_quantiles <- quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975), na.rm = TRUE)
 
 # Current (independent) approach
 beta_ind <- quantile(data$beta, 0.975, na.rm = TRUE)
@@ -1344,7 +1342,7 @@ kable(results_compare, align = "lccc",
 
 The empirical joint $C_t$ distribution represents the upper and lower bounds of plausible blood alcohol concentrations for an individual with weight 70kg, who consumed the mean grams of alcohol from the sample and was tested 2 hours later.
 
-As seen from the table above this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
+As seen from Table 5, this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
 
 \newpage
 
