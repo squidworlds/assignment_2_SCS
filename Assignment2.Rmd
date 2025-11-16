@@ -21,23 +21,25 @@ link-citations: yes
 ```{r load_packages, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-suppressPackageStartupMessages(library(tidyverse))
-suppressPackageStartupMessages(library(afex))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(tidyr))
-suppressPackageStartupMessages(library(lubridate))
-suppressPackageStartupMessages(library(viridis))
-suppressPackageStartupMessages(library(gridExtra))
-suppressPackageStartupMessages(library(patchwork))
-suppressPackageStartupMessages(library(kableExtra))
-suppressPackageStartupMessages(library(cv))
-suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(fitdistrplus))
-suppressPackageStartupMessages(library(readxl))
-suppressPackageStartupMessages(library(quantreg))
-suppressPackageStartupMessages(library(purrr))
-suppressPackageStartupMessages(library(broom))
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(afex)
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+  library(lubridate)
+  library(viridis)
+  library(gridExtra)
+  library(patchwork)
+  library(kableExtra)
+  library(cv)
+  library(stringr)
+  library(fitdistrplus)
+  library(readxl)
+  library(quantreg)
+  library(purrr)
+  library(broom)
+})
 
 theme_set(
   theme_bw() +
@@ -259,7 +261,7 @@ Due to the clear relationships between $\beta$ and characteristics of the tested
 
 ### Finding Distribution Method
 
-An issue with creating a distribution from the $\beta$ elimination rate values given is that we only have 100 data points. Therefore the distribution is very dependent on not many values. We propose instead investigating if $\beta$ follows a standard distribution. First, we will examined the general spread of $\beta$ values given in the following figure, where the mean, 2.5th, and 97.5th quantiles are indicated in red.
+A key issue with creating a distribution from the $\beta$ elimination rate values is that this distribution is based on the metabolism and behaviour of 100 individuals. Therefore there is a risk that it fails to capture the general trend of the whole population of Scotland. We propose instead investigating if values of $\beta$ can be taken from a standard distribution. First, we will examined the general spread of $\beta$ values given in the following figure, where the mean, 2.5th, and 97.5th quantiles are indicated in red.
 
 ```{r density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -355,11 +357,11 @@ sex_density_plot <- ggplot(data, aes(x = beta, fill = sex)) +
 sex_density_plot
 ```
 
-Thesefigures can point us towards a few different distributions. We can analyse how well the data fits the distributions in the following plots.
+These figures can point us towards a few different distributions. We can analyse how well the data fits these distributions in the following plots.
 
 #### Residual Plots of Fitted Distributions
 
-The aim of finding a distribution to fit $\beta$ is to smooth out the distribution to decrease the influence of a few outliers in the original dataset, as there are only 100 values. That means that a single datapoint can skew the 2.5th quantile that we are aiming to find. We are also focused on simplicity, so have only looked at 3 different distributions that have the general shape of the data, shown in the figures in the section above. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs below.
+We can use the histograms above to see that the shape is similar to normal, beta and gamma distributions. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs below.
 
 ```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
@@ -453,17 +455,14 @@ mtext("Figure 7: Comparison of Fitted Distributions", outer = TRUE, cex = 3, fon
 
 -   `P-P plot`: Majority of points lie on fitted line.
 
-After looking at the residuals, we conclude that Gamma is the most appropriate distribution for our $\beta$ with the fitting method.
+After looking at the residuals, we conclude that Gamma is the most appropriate distribution for our $\beta$ with the fitting method. The fitted distribution is described as $\beta \sim \text{Gamma}(\alpha = 31.9538, \lambda = 173.7079)$.
 
-```{r gamma, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
-gamma_shape <- gamma_fit$estimate[[1]]
-gamma_rate <- gamma_fit$estimate[[2]]
-q025 <- qgamma(0.025, gamma_shape, gamma_rate)
-```
-
-The 2.5th quantile in the gamma distribution of $\beta$ is 0.1257847. The density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
+The density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
 
 ```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
+gamma_shape <- gamma_fit$estimate[[1]]
+gamma_rate <- gamma_fit$estimate[[2]]
+
 gamma_df <- data.frame(
   x = data$beta,
   density = dgamma(data$beta, shape = gamma_shape, rate = gamma_rate)
