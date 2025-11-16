@@ -227,7 +227,7 @@ From Figures 1-4, we can deduce the following:
 
 -   there is a clear difference in elimination rate between genders, with males typically obtaining higher values.
 
-To further enhance our investigation into the effect each of these characteristics has on the elimination rate, the following table evaluates the significance of correlation between each characteristic and $\beta$.
+To further enhance our investigation into the effect each of these characteristics has on the elimination rate, Table 1 evaluates the significance of correlation between each characteristic and $\beta$.
 
 ```{r correlations, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -261,7 +261,7 @@ Due to the clear relationships between $\beta$ and characteristics of the tested
 
 ### Finding Distribution Method
 
-A key issue with creating a distribution from the $\beta$ elimination rate values is that this distribution is based on the metabolism and behaviour of 100 individuals. Therefore there is a risk that it fails to capture the general trend of the whole population of Scotland. We propose instead investigating if values of $\beta$ can be taken from a standard distribution. First, we will examined the general spread of $\beta$ values given in the following figure, where the mean, 2.5th, and 97.5th quantiles are indicated in red.
+A key issue with creating a distribution from the $\beta$ elimination rate values is that this distribution is based on the metabolism and behaviour of 100 individuals. Therefore there is a risk that it fails to capture the general trend of the whole population of Scotland. We propose instead investigating if values of $\beta$ can be taken from a standard distribution. First, we will examined the general spread of $\beta$ values given in the Figure 5, where the mean, 2.5th, and 97.5th quantiles are indicated in red.
 
 ```{r density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -289,7 +289,7 @@ density_plot <- ggplot(data, aes(x = beta)) +
 density_plot
 ```
 
-We have seen from exploratory data analysis that the rate at which alcohol density in the blood decreases is dependent on a range of variables given in the data. As Sex is the only discrete variable, we can split the data in two to see how $\beta$, the alcohol elimination rate, is distributed for males and females in the dataset given.
+We have seen from exploratory data analysis that the rate at which alcohol density in the blood decreases is dependent on a range of variables given in the data. As Sex is the only discrete variable, we can split the data in two to see how $\beta$, the alcohol elimination rate, is distributed for males and females in the dataset given. Figure 6 shows the histogram and density of the data when categorised by sex.
 
 ```{r sex_density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 # compute group statistics
@@ -357,11 +357,11 @@ sex_density_plot <- ggplot(data, aes(x = beta, fill = sex)) +
 sex_density_plot
 ```
 
-These figures can point us towards a few different distributions. We can analyse how well the data fits these distributions in the following plots.
+Figures 5 and 6 can point us towards a few different distributions. We can analyse how well the data fits these distributions in the following plots.
 
 #### Residual Plots of Fitted Distributions
 
-We can use the histograms above to see that the shape is similar to normal, beta and gamma distributions. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs below.
+We can use the histograms above to see that the shape is similar to normal, beta and gamma distributions. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs in Figure 7.
 
 ```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
@@ -457,7 +457,7 @@ mtext("Figure 7: Comparison of Fitted Distributions", outer = TRUE, cex = 3, fon
 
 After looking at the residuals, we conclude that Gamma is the most appropriate distribution for our $\beta$ with the fitting method. The fitted distribution is described as $\beta \sim \text{Gamma}(\alpha = 31.9538, \lambda = 173.7079)$.
 
-The density graph of the gamma distribution across the whole population of Gamma is shown below to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
+The density graph of the gamma distribution across the whole population of Gamma is shown in Figure 8 to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
 
 ```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
 gamma_shape <- gamma_fit$estimate[[1]]
@@ -511,7 +511,7 @@ gamma_plot <- ggplot(data, aes(x = beta)) +
 gamma_plot
 ```
 
-Considering that Sex is a factor variable, we can find the distributions of beta_60 dependent on whether the suspect is male of female.
+Considering that Sex is a factor variable, we can find the distributions of $\beta$ dependent on whether the suspect is male of female.
 
 ```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -598,17 +598,17 @@ sex_gamma_plot <- ggplot(data, aes(x = beta)) +
   labs(
     x = expression(beta),
     y = "Density",
-    title = expression("Figure 9:Gamma Distributions of "*beta*" by Sex")
+    title = expression("Figure 9: Gamma Distributions of "*beta*" by Sex")
   )
 
 sex_gamma_plot
 ```
 
-The 2.5% quantile in the gamma distribution for males is 0.1219521, and for females it is 0.1430605.
+We have two distributions for our data, $\beta_{male} \sim \text{Gamma}(\alpha = 36.15709, \lambda = 207.8306)$ and $\beta_{female} \sim \text{Gamma}(\alpha = 40.00287, \lambda = 199.7688)$. This is an improvement of the gamma fit on the whole population, as we are able to more accurately predict the confidence interval of alcohol elimination rate of our suspect. For Police Scotland, this is vital as we are using as much information as we have at our disposal to make a conclusion in the case.
 
 ### Linear Model Method
 
-Instead of fitting a distribution, we can create a linear model. This creates a distribution for $\beta$ given a range of information about the suspect, whether this information is in the form of discrete or continuous form. This is more useful than the method that finds a different beta distribution for males and females, as it is not possible to do the same for continuous information such as weight. Therefore the previous methods don't make the most of all the information given.
+While fitting a distribution by sex has allowed us to take more information on the suspect, without overfitting to a small dataset, sex is not the only information given to the police. By creating a linear model, we can create a distribution for $\beta$ given a range of information about the suspect. In this case, this information can be discrete or continuous.
 
 We can create the following model, where $\beta_j$ represent the coefficients for $j \in \{0, ..., 4\}$ to model $Y_i$, the $i$ datapoints of $\beta$:
 
@@ -624,6 +624,8 @@ Y_i &= \beta_0
 \epsilon_i &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
 \end{aligned}
 $$
+
+To analyse the accuracy of fit of this model, we can examine the residual ($\epsilon_i$) plots, as shown in Figure 10.
 
 ```{r modelling_beta, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 # --- linear modelling beta 60 attempt ---
