@@ -1,6 +1,6 @@
 ---
 title: "Forensic Modelling of Blood Alcohol Evidence"
-subtitle: (3769 words)
+subtitle: (4265 words)
 author: |
   Group 20  
   Aliya Mosha (s2206786)  
@@ -71,11 +71,7 @@ data$age <- data$`Age (years)`
 data$beta <- -data$beta60
 ```
 
-<p style="font-size:2em; font-weight:bold;">
-
-Contents
-
-</p>
+<p style="font-size:2em; font-weight:bold;">Contents</p>
 
 ::: {#custom-toc}
 :::
@@ -698,7 +694,7 @@ The `Q-Q Residuals` plot is improved, however there is only marginal change in t
 
 The biggest issue with the linear model above for use in our project is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model (weight, height and sex). The aim of our analysis is to find a threshold of $\beta$ that can be used to determine if a suspect had high blood alcohol levels while driving. Therefore we want to investigate further than the expectation, $E(\beta | x)$, and examine the spread of the whole conditional distribution. When investigating quantiles of linear models, it is more accurate to use quantile regression [@RodriguezYao2017]. As the square root made little difference, we adapt our quantile regression from the initial linear model above.
 
-To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method discussed in the section above, we have to find $E(\beta | x) + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results. 
+To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method discussed in the section above, we have to find $E(\beta | x) + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results.
 
 The subtle differences between the methods produce different final results, as shown in Figure 12.
 
@@ -783,45 +779,44 @@ The current forensic practice uses a single threshold - the 2.5th percentile of 
 
 $$
 C_0 = C_t + \beta t
-$$ 
+$$
 
-where $C_t$ is the measured blood alcohol concentration, $\beta$ is the elimination rate, and $t$ is the elapsed time (in hours) since driving. 
+where $C_t$ is the measured blood alcohol concentration, $\beta$ is the elimination rate, and $t$ is the elapsed time (in hours) since driving.
 
 Currently, if the back-calculated $C_0$ using the 2.5th percentile of $\beta$ exceeds the legal limit, the individual is reported as being over the limit. While this approach is straightforward to implement, it has several significant drawbacks:
 
-1. **It treats uncertainty as certainty:** Using a single value for $\beta$ implues precision that does not exist. Our analysis shows that $\beta$ varies considerably between individuals.
+1.  **It treats uncertainty as certainty:** Using a single value for $\beta$ implues precision that does not exist. Our analysis shows that $\beta$ varies considerably between individuals.
 
-2. **It ignores individual characteristics:** The current method applies the same $\beta$ value to everyone, despite clear evidence that elimination rates differ based on weight, height, and sex.
+2.  **It ignores individual characteristics:** The current method applies the same $\beta$ value to everyone, despite clear evidence that elimination rates differ based on weight, height, and sex.
 
-3. **It provides no measure of confidence:** A binary "over/under" verdict gives no indication of how confident we should be in that conclusion. An individual barely above the threshold is treated identically to one far exceeding it.
+3.  **It provides no measure of confidence:** A binary "over/under" verdict gives no indication of how confident we should be in that conclusion. An individual barely above the threshold is treated identically to one far exceeding it.
 
-4. **It may lead to inconsistent outcomes:** Two individuals with identical measured BAC values but different characteristics may have had very different BAC levels at the time of driving, yet receive the same assessment.
+4.  **It may lead to inconsistent outcomes:** Two individuals with identical measured BAC values but different characteristics may have had very different BAC levels at the time of driving, yet receive the same assessment.
 
 **Proposed Framework: Probabilistic Reporting**
 
 We recommend that Police Scotland adopt a reporting framework that explicitly acknowledges and quantifies uncertainty. Rather than providing a single yes/no answer, reports should include:
 
-1. **The measured facts:**
+1.  **The measured facts:**
 
-- Measured BAC at the police station ($C_t$)
-- Time elapsed since driving ($t$ hours)
-- Individual characteristics (weight, height, sex)
+-   Measured BAC at the police station ($C_t$)
+-   Time elapsed since driving ($t$ hours)
+-   Individual characteristics (weight, height, sex)
 
-2. **The estimated BAC at time of driving:**
+2.  **The estimated BAC at time of driving:**
 
-- A point estimate for $C_0$ (the most likely value)
-- A 95% uncertainty interval for $C_0$ (the range of plausible values)
+-   A point estimate for $C_0$ (the most likely value)
+-   A 95% uncertainty interval for $C_0$ (the range of plausible values)
 
-3. **A probability statement:**
+3.  **A probability statement:**
 
-- The probability that $C_0$ exceeded the legal limit 
+-   The probability that $C_0$ exceeded the legal limit
 
 This approach transparently communicates both what we know and what remains uncertain, allowing legal decision-makers to weigh the evidence appropriately. We evaluated three approaches for generating these probability statements.
 
 ### Method 1: Fitted Distribution (Whole Population)
 
-By fitting a Gamma distribution to the observed elimination rates across the entire dataset, we obtain a smooth representation of how $\beta$ varies in the population. The fitted distribution has parameters $\alpha$ = 31.95
-and $\lambda$ = 173.71.
+By fitting a Gamma distribution to the observed elimination rates across the entire dataset, we obtain a smooth representation of how $\beta$ varies in the population. The fitted distribution has parameters $\alpha$ = 31.95 and $\lambda$ = 173.71.
 
 Using this distribution, we can calculate:
 
@@ -829,8 +824,7 @@ $$
 \begin{eqnarray}
 \mathbb{P}(C_0 > x) &=& 1 - F_{Gamma}\left(\frac{x - C_t}{t}\right)
 \end{eqnarray}
-$$
-where $x$ is the legal limit (0.47 g/kg) and $F_{Gamma}$ is the cumulative distribution function of the fitted Gamma distribution. The 95% uncertainty interval for $C_0$ is constructed using the 2.5th and 97.5th percentiles of the Gamma distribution:
+$$ where $x$ is the legal limit (0.47 g/kg) and $F_{Gamma}$ is the cumulative distribution function of the fitted Gamma distribution. The 95% uncertainty interval for $C_0$ is constructed using the 2.5th and 97.5th percentiles of the Gamma distribution:
 
 $$
 C_0 \in [C_t + \beta_{0.025} \times t,\ C_t + \beta_{0.975} \times t]
@@ -840,13 +834,12 @@ $$
 
 **Limitations:** Does not incorporate individual characteristics; treats a 20-year-old male and a 70-year-old female identically.
 
-
-### Method 2: Sex-Specific Fitted Distributions 
+### Method 2: Sex-Specific Fitted Distributions
 
 Our analysis revealed clear differences in elimination rates between males and females. We can fit separate Gamma distributions for each sex:
 
-- Males: $\alpha$ = 29.87, $\lambda$ = 156.23 (2.5th percentile: 0.122 g/kg/h)
-- Females: $\alpha$ = 38.73, $\lambda$ = 210.12 (2.5th percentile: 0.143 g/kg/h)
+-   Males: $\alpha$ = 29.87, $\lambda$ = 156.23 (2.5th percentile: 0.122 g/kg/h)
+-   Females: $\alpha$ = 38.73, $\lambda$ = 210.12 (2.5th percentile: 0.143 g/kg/h)
 
 This provides more tailored estimates while maintaining simplicity.
 
@@ -854,7 +847,7 @@ This provides more tailored estimates while maintaining simplicity.
 
 **Limitations:** Ignores other relevant factors such as weight and height.
 
-### Method 3: Quantile Regression 
+### Method 3: Quantile Regression
 
 Quantile regression allows us to model how the lower and upper bounds of the elimination rate vary with individual characteristics. Rather than predicting the average $\beta$ for someone with given characteristics, this method directly estimates the 2.5th and 97.5th percentiles of their elimination rate.
 
@@ -862,24 +855,21 @@ The model takes the form:
 
 $$
 \beta = f(\text{weight, height, sex})
-$$
-For a given individual, we obtain personalized bounds: $\beta^{individual}_{0.025}$ and $\beta^{individual}_{0.975}$.
+$$ For a given individual, we obtain personalized bounds: $\beta^{individual}_{0.025}$ and $\beta^{individual}_{0.975}$.
 
 **Advantages:** Fully accounts for individual variability; provides the most accurate uncertainty intervals; does not assume constant variability across the population.
 
 **Limitations:** Requires more information about the individual; slightly more complex to implement.
 
-
 **Benefits for the Justice System**
 
 This probabilistic framework offers several advantages:
 
-1. Transparency: It openly acknowledges what can and cannot be determined from the evidence.
-2. Proportionality: Cases with clear-cut evidence (very high probabilities) can be distinguished from borderline cases.
-3. Fairness: Individuals are not arbitrarily classified as "over" or "under" the limit when their true status is genuinely uncertain.
-4. Scientific integrity: The approach aligns with modern statistical practice and avoids overstating the precision of forensic estimates.
-5. Legal flexibility: Courts and prosecutors can weigh probabilistic evidence alongside other factors, rather than relying solely on a binary cutoff.
-
+1.  Transparency: It openly acknowledges what can and cannot be determined from the evidence.
+2.  Proportionality: Cases with clear-cut evidence (very high probabilities) can be distinguished from borderline cases.
+3.  Fairness: Individuals are not arbitrarily classified as "over" or "under" the limit when their true status is genuinely uncertain.
+4.  Scientific integrity: The approach aligns with modern statistical practice and avoids overstating the precision of forensic estimates.
+5.  Legal flexibility: Courts and prosecutors can weigh probabilistic evidence alongside other factors, rather than relying solely on a binary cutoff.
 
 \newpage
 
@@ -893,12 +883,11 @@ Using $\beta = 0.126$ g/kg/h (the fixed 2.5th percentile):
 
 $$
 C_0 = 0.15 + 0.126 \times 2 = 0.402 \ g/kg
-$$
-*Verdict*: Below the legal limit.
+$$ *Verdict*: Below the legal limit.
 
 **2. Proposed Approach Using Gamma Distribution**
 
-The 95% uncertainty interval for $C_0$ is (0.40, 0.66) g/kg, and the probability that $C_0$ exceeded the legal limit is 75%. 
+The 95% uncertainty interval for $C_0$ is (0.40, 0.66) g/kg, and the probability that $C_0$ exceeded the legal limit is 75%.
 
 *Verdict*: While the lower bound of the uncertainty interval (0.40 g/kg) is below the legal limit, there is a substantial probability (75%) that the individual's true BAC at the time of driving exceeded 0.47 g/kg. The current method would have concluded she was below the limit, but our analysis reveals considerable uncertainty in that conclusion.
 
@@ -1059,11 +1048,10 @@ geom_text(
                                  "Gamma model"             = "firebrick",
                                  "Quantile regression"     = "hotpink"),
                       name = "Method") +
-  ggtitle(expression("Comparison of reporting frameworks for " * C[0]))
+  ggtitle(expression("Figure 13: Comparison of reporting frameworks for " * C[0]))
 
 p
 ```
-
 
 **Recommended Report Format**
 
@@ -1101,7 +1089,6 @@ kable(
 
 
 ```
-
 
 \newpage
 
