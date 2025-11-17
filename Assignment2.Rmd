@@ -71,7 +71,11 @@ data$age <- data$`Age (years)`
 data$beta <- -data$beta60
 ```
 
-<p style="font-size:2em; font-weight:bold;">Contents</p>
+<p style="font-size:2em; font-weight:bold;">
+
+Contents
+
+</p>
 
 ::: {#custom-toc}
 :::
@@ -87,33 +91,34 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 ```
+
 \newpage
 
 # Executive Summary
 
-In this report we investigate the statistical techniques used by the forensic services at Police Scotland on blood alcohol computations in criminal cases associated with drink driving. In UK law, it is an offence to drive with blood alcohol concentration (BAC) above the prescribed limit (0.47g/kg). Since alcohol levels fall over time, the measured BAC at the police station is lower than at the time of driving; forensic scientists ‘back-calculate’ the earlier level using an elimination rate [@FSR2020].
+In this report we investigate the statistical techniques used by the forensic services at Police Scotland when calculating blood alcohol concentrations in criminal cases associated with drink driving. In UK law, it is an offence to drive with blood alcohol concentration (BAC) above the prescribed limit (0.47g/kg). Since alcohol levels fall over time, the measured BAC at the police station is lower than at the time of driving; forensic scientists ‘back-calculate’ the earlier level using an elimination rate [@FSR2020].
 
-The current method implemented by Police Scotland incorporates the $\beta$ elimination rate, a measure of how quickly alcohol is eliminated from the bloodstream. A fixed range for $\beta$ is applied across all individuals, using the 2.5th percentile of the distribution as a conservative cutoff. If the back‑calculated BAC exceeds the legal limit under this assumption, the individual is reported as over the limit. While simple, this binary approach does not reflect the variability of $\beta$ across individuals or the uncertainty inherent in the calculation.
+The current method implemented by Police Scotland incorporates the $\beta$ elimination rate, a measure of how quickly alcohol is eliminated from the bloodstream. A fixed range for $\beta$ is applied across all individuals, using the 2.5th percentile of the distribution as a conservative cutoff. If the back‑calculated BAC exceeds the legal limit under this assumption, the individual is reported as over the limit. While simple, this binary approach does not reflect the variability of $\beta$ across individuals or the uncertainty inherent in this calculation.
 
-Using the provided dataset of 100 individuals [@thesis], we examined how $\beta$ varies based on individual characteristics (weight, height, age, sex). We found that there us significant negative correlations between $\beta$and both weight and height, a clear sex-specific difference, with males typically showing high elimination rates. Further, we found age has little influence on $\beta$.
+Using a dataset of 100 individuals [@thesis], we examined how $\beta$ varies based on individual characteristics (weight, height, age, sex). We found that there is significant negative correlations between $\beta$ and both weight and height, a clear sex-specific difference, with males typically showing higher elimination rates. Further, we found age has little influence on $\beta$.
 
 We then applied these findings by comparing several modelling strategies:
 
--   **Parametric Distributions**: Gamma provided the most accurate fit to the observed $\beta$ values.
+-   **Parametric Distributions**: A Gamma distribution provided the most accurate fit to the observed $\beta$ values.
 
--   **Linear models**: Useful approach for incorporating predictors, though a violation of assumptions was apparent.
+-   **Linear Regression**: Useful approach for incorporating predictors, though a violation of assumptions was apparent.
 
--   **Quantile Regression**: A more appropriate approach when estimating the lower tail of $\beta$, as used in back-calculations.
+-   **Quantile Regression**: A more appropriate approach when estimating the tails of $\beta$, as used in back-calculations.
 
-We propose replacing the current binary cutoff with a probabilistic and interval-based framework: providing the probability that the BAC at the time of driving exceeded the legal limit, along with a 95% credible interval for the back-calculated BAC.
+We propose replacing the current binary cutoff with a probabilistic and interval-based framework: providing the probability that the BAC at the time of driving exceeded the legal limit, along with a 95% prediction interval for the back-calculated BAC.
 
-As an example, we found that under the current approach an individual would be deemed not over the limit, whereas our suggested approaches provide respective probabilities of 76% and 75% that they were indeed over the limit - revealing a substantial likelihood that the individual was above the legal threshold, in contrast to the binary conclusion under current practice.
+As an example, we found that under the current approach an individual would be deemed under the legal limit, whereas our suggested approaches provide probabilities of around 75% that they were indeed over the limit. This showed a substantial likelihood that the individual was above the legal threshold at the time of driving.
 
-We also considered situations where no blood sample is available and Widmark’s equation must be used along with eyewitness dose, which introduces the volume of distribution $V_d$. The standard approach treats $\beta$ and $V_d$ as independent and applies fixed percentile ranges for both.
+We also considered situations where no blood sample is available. In this case, we have to rely on eyewitness dose of alcohol, weight of the suspect and the so-called volume of distribution of alcohol in the blood, $V_d$. The standard approach treats $\beta$ and $V_d$ as independent and applies fixed percentile ranges for both.
 
 We found $V_d$ and $\beta$ to be negatively correlated, meaning treating them as independent and combining extreme marginal percentiles can lead to implausible scenarios. Hence, we suggest reports should acknowledge this relationship and avoid the assumption of independence.
 
-In conclusion, our findings support a shift towards a probabilistic reporting framework in forensic alcohol analysis. We recommend expert witness reports should include:
+In conclusion, our findings support a shift towards a probabilistic reporting framework in forensic blood alcohol analysis. We recommend expert witness reports should include:
 
 -   Measured BAC and elapsed time since driving.
 
@@ -123,7 +128,7 @@ In conclusion, our findings support a shift towards a probabilistic reporting fr
 
 -   Clear disclosure of assumptions about $\beta$ and $V_d$ when applicable, including their correlation.
 
-This approach ultimately enhances transparency, communicates uncertainty, and provides courts with a mode scientifically defensible basis for decision making.
+This approach ultimately enhances transparency, communicates uncertainty, and provides courts with a more scientifically defensible basis for decision making.
 
 \newpage
 
@@ -131,7 +136,7 @@ This approach ultimately enhances transparency, communicates uncertainty, and pr
 
 ## Introduction
 
-The $\beta$ elimination rate (measured in g/kg/hr) measures how quickly alcohol is eliminated from the bloodstream, and is used by forensic scientists at Police Scotland when 'back-calculating' the BAC at the time of offence [@FSR2020]. This calculation is of form
+The $\beta$ elimination rate (measured in g/kg/h) measures how quickly alcohol is eliminated from the bloodstream, and is used by forensic scientists at Police Scotland when 'back-calculating' the BAC at the time of offence [@FSR2020]. This calculation is of form
 
 $$C_0 = C_t +\beta t,$$
 
@@ -147,19 +152,19 @@ The dataset analysed in this study was taken from a PhD thesis, and contains mea
 
 Key variables that are explored in this report include:
 
--   `Beta60`: the negative of the $\beta$ elimination rate (g/kg/hr), though for our analysis we took the corresponding positive variable `beta`;
+-   `Beta60`: the negative of the $\beta$ elimination rate (g/kg/h), though for our analysis we took the corresponding positive variable `beta`;
 
 -   `C0`: the concentration of alcohol in the blood at time zero;
 
--   `weight`: the weight (in kg) of a given individual;
+-   `Weight`: the weight (in kg) of a given individual;
 
--   `height`: the height (in cm) of a given individual;
+-   `Height`: the height (in cm) of a given individual;
 
--   `age`: the age (in years) of a given individual;
+-   `Age`: the age (in years) of a given individual;
 
--   `sex`: the sex of a given individual;
+-   `Sex`: the sex of a given individual;
 
--   `Amount of alcohol consumed`: the dose (in g) of alcohol consumed.
+-   `Amount of Alcohol Consumed`: the dose (in g) of alcohol consumed.
 
 ## Exploratory Data Analysis
 
@@ -199,7 +204,7 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
   scale_fill_manual(values = c("seagreen", "skyblue")) +
   labs(
     title = "Figure 4: β vs Sex",
-    x = "Gender",
+    x = "Sex",
     y = "β Elimination Rate (g/kg/h)"
   ) +
   guides(fill = "none")
@@ -221,7 +226,7 @@ From Figures 1-4, we can deduce the following:
 
 -   the majority of age data is scattered between 20-30, however there is a reasonably constant spread of values, suggesting age is less influential on alcohol elimination;
 
--   there is a clear difference in elimination rate between genders, with males typically obtaining higher values.
+-   there is a clear difference in elimination rate between sexes, with males typically obtaining higher values.
 
 To further enhance our investigation into the effect each of these characteristics has on the elimination rate, Table 1 evaluates the significance of correlation between each characteristic and $\beta$.
 
@@ -230,13 +235,15 @@ To further enhance our investigation into the effect each of these characteristi
 # Compute correlation and p-value between beta and each characteristic.
 corr_table <- data %>%
   dplyr::select(beta, weight, age, height) %>%
-  pivot_longer(cols = c(weight, age, height), names_to = "Characteristic", values_to = "Value") %>%
+  pivot_longer(cols = c(weight, age, height), 
+               names_to = "Characteristic", values_to = "Value") %>%
   group_by(Characteristic) %>%
   summarise(
     Correlation = cor(beta, Value, use = "pairwise.complete.obs"),
     P_value = cor.test(beta, Value)$p.value
   ) %>%
   mutate(
+    Characteristic = str_to_title(Characteristic),
     Correlation = round(Correlation, 3),
     P_value = signif(P_value)
   )
@@ -249,7 +256,7 @@ kable(
 )
 ```
 
-From this output, we can see that weight and height have significant correlations with the $\beta$ elimination rate, with respective correlations of -0.356 and -0.410. This suggests that these characteristics play a crucial role in determining the rate at which alcohol is eliminated from the blood stream. Further, the correlation test returned a p-value below 0.05 for both of these characteristics, indicating that there is evidence to reject the null hypothesis that there is no correlation between these characteristics and $\beta$. As expected, there is a low correlation between age and elimination rate, and a large p-value of 0.68772 further validates this. Hence, we can deduce that age plays little role in the elimination rate of alcohol from the blood stream.
+From this output, we can see that weight and height have significant correlations with the $\beta$ elimination rate, with respective correlations of -0.356 and -0.410. This suggests that these characteristics play a crucial role in determining the rate at which alcohol is eliminated from the blood stream. Further, the correlation test returned a p-value below 0.05 for both of these characteristics, indicating that there is evidence to reject the null hypothesis that there is no correlation between these characteristics and $\beta$. As expected, there is a low correlation between age and elimination rate, and a large p-value of 0.68772 further validates this. Hence, we can deduce that there is little correlation between age and blood alcohol elimination rate.
 
 Due to the clear relationships between $\beta$ and characteristics of the tested individuals, it is worth considering approaches in which these factors are incorporated to accurately predict the rate at which alcohol is eliminated from the blood stream.
 
@@ -257,7 +264,7 @@ Due to the clear relationships between $\beta$ and characteristics of the tested
 
 ### Distribution Fitting Method
 
-A key issue with creating a distribution from the $\beta$ elimination rate values is that this distribution is based on the metabolism and behaviour of 100 individuals. Therefore there is a risk that it fails to capture the general trend of the whole population of Scotland. We propose instead investigating if values of $\beta$ can be taken from a standard distribution. First, we will examined the general spread of $\beta$ values given in the Figure 5, where the mean, 2.5th, and 97.5th quantiles are indicated in red.
+A key issue with creating a distribution from the $\beta$ elimination rate values is that this distribution is based on data from 100 individuals. Therefore there is a risk that it fails to capture the general trend of the whole population of Scotland. We propose instead investigating if values of $\beta$ can be taken from a standard distribution. First, we will examined the general spread of $\beta$ values given in the Figure 5, where the mean, 2.5th, and 97.5th quantiles are indicated in red.
 
 ```{r density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -285,9 +292,10 @@ density_plot <- ggplot(data, aes(x = beta)) +
 density_plot
 ```
 
-We have seen from exploratory data analysis that the rate at which alcohol density in the blood decreases is dependent on a range of variables given in the data. As Sex is the only discrete variable, we can split the data in two to see how $\beta$, the alcohol elimination rate, is distributed for males and females in the dataset given. Figure 6 shows the histogram and density of the data when categorised by sex.
+We have seen from exploratory data analysis that alcohol elimination rate depends on a range of variables. Our initial analysis showed that sex is a significant factor, so we can split the data to see how $\beta$ is distributed for males and females. Figure 6 shows the histogram and density of the data when categorised by sex.
 
 ```{r sex_density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+
 # compute group statistics
 stats <- data %>%
   group_by(sex) %>%
@@ -311,8 +319,8 @@ legend_lines <- data.frame(
 
 # main plot
 sex_density_plot <- ggplot(data, aes(x = beta, fill = sex)) +
-  geom_histogram(aes(y = after_stat(density), color = sex),
-                 binwidth = 0.005, alpha = 0.5, position = "identity") +
+  # geom_histogram(aes(y = after_stat(density), color = sex),
+  #                binwidth = 0.005, alpha = 0.6, position = "identity") +
   geom_density(aes(color = sex), size = 1, alpha = 0) +
   
   # mean lines (dashed, red/blue)
@@ -336,7 +344,7 @@ sex_density_plot <- ggplot(data, aes(x = beta, fill = sex)) +
   scale_color_manual(
     name = "Quantile Colour",
     values = c("male" = "skyblue", "female" = "seagreen",
-               "red" = "red", "blue" = "blue"),
+               "red" = "seagreen", "blue" = "skyblue"),
     breaks = c("blue", "red"),
     labels = c("male quantiles (blue)", "female quantiles (red)")
   ) +
@@ -357,7 +365,7 @@ Figures 5 and 6 can point us towards a few different distributions. We can analy
 
 #### Residual Plots of Fitted Distributions
 
-We can use the histograms above to see that the shape is similar to normal, beta and gamma distributions. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs in Figure 7.
+We can use Figures 5 and 6 to see that the shape is similar to normal, beta and gamma distributions. Our method selection also relies on simplicity, as we do not want to over-fit our chosen distribution on such a small dataset. To evaluate how well our data fits our chosen distributions, we have analysed the residual ($\epsilon_i$) graphs in Figure 7.
 
 ```{r normal, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
 
@@ -423,37 +431,37 @@ mtext("Figure 7: Comparison of Fitted Distributions", outer = TRUE, cex = 3, fon
 
 #### Normal Distribution
 
--   `Empirical and Theoretical Densities`: The theoretical peak value is skewed compared to the empirical peak, and has lower density.
+-   **Empirical and Theoretical Densities:** The theoretical peak value is skewed compared to the empirical peak, and has lower density.
 
--   `Q-Q plot`: Lack-of-fit observed at distribution tails. The left tail is heavy while the right tail is light.
+-   **Q-Q plot:** Lack-of-fit observed at distribution tails. The left tail is heavy while the right tail is light.
 
--   `Empirical and Theoretical CDFs`: Poor fit at central values of the distribution.
+-   **Empirical and Theoretical CDFs:** Poor fit at central values of the distribution.
 
--   `P-P plot`: Lack-of-fit at the distribution centre, as the central values deviate from the linear relationship.
+-   **P-P plot:** Lack-of-fit at the distribution centre, as the central values deviate from the linear relationship.
 
 #### Beta Distribution
 
--   `Empirical and Theoretical Densities`: Improved fit of peak is observed, while still not completely aligned.
+-   **Empirical and Theoretical Densities:** Improved fit of peak is observed, while still not completely aligned.
 
--   `Q-Q plot`: Points are randomly distributed above and below the general linear trend, with outliers at the lower tail.
+-   **Q-Q plot:** Points are randomly distributed above and below the general linear trend, with outliers at the lower tail.
 
--   `Empirical and Theoretical CDFs`: Improved fit at distribution centre compared to normal.
+-   **Empirical and Theoretical CDFs:** Improved fit at distribution centre compared to normal.
 
--   `P-P plot`: Improved fit at distribution centre compared to normal.
+-   **P-P plot:** Improved fit at distribution centre compared to normal.
 
 #### Gamma Distribution
 
--   `Empirical and Theoretical Densities`: Best fit of peak of the analysed distributions.
+-   **Empirical and Theoretical Densities:** Best fit of peak of the analysed distributions.
 
--   `Q-Q plot`: Points are randomly distributed above and below the general linear trend across all quantiles.
+-   **Q-Q plot:** Points are randomly distributed above and below the general linear trend across all quantiles.
 
--   `Empirical and Theoretical CDFs`: Best fit of theoretical distribution to data.
+-   **Empirical and Theoretical CDFs:** Best fit of theoretical distribution to data.
 
--   `P-P plot`: Majority of points lie on fitted line.
+-   **P-P plot:** Majority of points lie on fitted line.
 
-After looking at the residuals, we conclude that Gamma is the most appropriate distribution for our $\beta$ with the fitting method. The fitted distribution is described as $\beta \sim \text{Gamma}(\alpha = 31.9538, \lambda = 173.7079)$ to 7 significant figures.
+After looking at the residuals, we conclude that Gamma is the most appropriate distribution for $\beta$. The fitted distribution is described as $\beta \sim \text{Gamma}(\alpha = 31.95, \lambda = 173.71)$.
 
-The density graph of the gamma distribution across the whole population of Gamma is shown in Figure 8 to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
+The density graph of the Gamma distribution across the whole population of $\beta$ is shown in Figure 8 to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
 
 ```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
 gamma_shape <- gamma_fit$estimate[[1]]
@@ -507,7 +515,7 @@ gamma_plot <- ggplot(data, aes(x = beta)) +
 gamma_plot
 ```
 
-Considering that Sex is a factor variable, we can find the distributions of $\beta$ dependent on whether the suspect is male of female.
+Considering that sex is a factor variable, we can find the distributions of $\beta$ dependent on whether the suspect is male of female.
 
 ```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -543,11 +551,11 @@ stats_gamma_sex <- data.frame(
 
 # plot
 sex_gamma_plot <- ggplot(data, aes(x = beta)) +
-  # histogram with correct fill colors
-  geom_histogram(
-    aes(y = after_stat(density), fill = Sex),
-    binwidth = 0.005, alpha = 0.5, position = "identity"
-  ) +
+  # # histogram with correct fill colors
+  # geom_histogram(
+  #   aes(y = after_stat(density), fill = Sex),
+  #   binwidth = 0.005, alpha = 0.5, position = "identity"
+  # ) +
   
   # gamma density curves (match fill colours)
   geom_line(
@@ -600,13 +608,13 @@ sex_gamma_plot <- ggplot(data, aes(x = beta)) +
 sex_gamma_plot
 ```
 
-We have two distributions for our data, $\beta_{male} \sim \text{Gamma}(\alpha = 36.15709, \lambda = 207.8306)$ and $\beta_{female} \sim \text{Gamma}(\alpha = 40.00287, \lambda = 199.7688)$, all parameters to 7 significant figures. This is an improvement of the Gamma fit on the whole population, as we are able to more accurately predict the confidence interval of alcohol elimination rate of our suspect. For Police Scotland, this is vital as we are using as much information as we have at our disposal to make a conclusion in the case.
+We have fitted two sex-specific distributions to the data, $\beta_{male} \sim \text{Gamma}(\alpha = 36.16, \lambda = 207.83)$ and $\beta_{female} \sim \text{Gamma}(\alpha = 40.00, \lambda = 199.77)$. This is an improvement of the Gamma fit on the whole population, as we are able to more accurately predict the confidence interval of alcohol elimination rate of our suspect. For Police Scotland, this is vital as we are using as much information as we have at our disposal to make a conclusion in the case.
 
 ### Linear Model Method
 
-While fitting a distribution by sex has allowed us to take more information on the suspect, without overfitting to a small dataset, sex is not the only information given to the police. By creating a linear model, we can create a distribution for $\beta$ given a range of information about the suspect. In this case, the explanatory variables can be discrete or continuous.
+While fitting a distribution by sex has allowed us to incorporate more information on the suspect, without overfitting to a small dataset, sex is not the only characteristic given to the police. By creating a linear model, we can create a distribution for $\beta$ given a range of information about the suspect.
 
-From the exploratory data analysis in Figures 1-4, we can deduce that weight, height and sex all cause a linear downward trend in $\beta$. However, we see that age has little impact. When creating our model we are focusing on balancing accuracy and simplicity. Therefore we can create the following model, where $\alpha_j$ represent the coefficients for $j \in \{0, 1, 2, 3\}$ to model $Y_i$, the $i = 100$ datapoints of blood alcohol elimination rate $\beta$:
+From the exploratory data analysis, we can deduce that weight and height cause a linear downward trend in $\beta$, however, we see that age has little impact. When creating our model we are focusing on balancing accuracy and simplicity. Therefore we can create the following model, where $\alpha_j$ represent the coefficients for $j \in \{0, 1, 2, 3\}$ to model $Y_i$, where $i \in \{1, \dots, 100\}$:
 
 $$
 \begin{aligned}
@@ -643,15 +651,15 @@ plot(lm_model, which = 5, caption = "", main = "Residuals vs Leverage", sub.capt
 mtext("Figure 10: Residual Plots for Linear Model", outer = TRUE, cex = 3, font = 2)
 ```
 
--   `Residual vs Fitted`: There is a change of variance with mean, so the constant variance assumption is slightly violated. Unfortunately there is little data points to establish if this is an important violation.
+-   **Residual vs Fitted:** There is a change of variance with mean, so the constant variance assumption is slightly violated. Unfortunately there is little data points to establish if this is an important violation.
 
--   `Q-Q Residuals`: The ordered standardised residuals are plotted against quantiles of a standard normal. Lack-of-fit observed at distribution tails. The left tail is heavy while the right tail is light.
+-   **Q-Q Residuals:** The ordered standardised residuals are plotted against quantiles of a standard normal. Lack of fit observed at distribution tails. The left tail is heavy while the right tail is light.
 
--   `Scale-Location`: We have random variation around the mean, so there is no violation of the constant variation assumption.
+-   **Scale-Location:** We have random variation around the mean, so there is no violation of the constant variation assumption.
 
--   `Residuals vs Leverage`: This plot gives us Cook’s distance, which measures the change in all model fitted values on omission of the data point in question. From the plot we can see there are no outliers, so there aren't any highly influential points in our data.
+-   **Residuals vs Leverage:** This plot gives us Cook’s distance, which measures the change in all model fitted values on omission of the data point in question. From the plot we can see there are no outliers, so there aren't any highly influential points in our data.
 
-To try to resolve these violations of the assumptions on residuals, we can create an alternative linear model. Given that there is a quadratic shape in the `Residuals vs Fitted` graph, we create the following linear model, where $\alpha_j$ represent the new coefficients for $j \in \{0, 1, 2, 3\}$ to model $Y_i$, the $i = 100$ datapoints of blood alcohol elimination rate $\beta$:
+To try to resolve these violations of the assumptions on residuals, we can create an alternative linear model. Given that there is a quadratic shape in the Residuals vs Fitted graph, we create the following linear model, where $\alpha_j$ represent the new coefficients for $j \in \{0, 1, 2, 3\}$ to model $Y_i$, the $i = 100$ datapoints of blood alcohol elimination rate $\beta$:
 
 $$
 \begin{aligned}
@@ -688,13 +696,13 @@ plot(sqrt_lm_model, which = 5, caption = "", main = "Residuals vs Leverage", sub
 mtext("Figure 11: Residual Plots for Square Root Model", outer = TRUE, cex = 3, font = 2)
 ```
 
-The `Q-Q Residuals` plot is improved, however there is only marginal change in the `Residuals vs Fitted` plot. Therefore we explore alternative methods.
+The Q-Q Residuals plot is improved, however there is only marginal change in the Residuals vs Fitted plot. Therefore we explore alternative methods.
 
 ### Quantile Linear Model Method
 
-The biggest issue with the linear model above for use in our project is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model (weight, height and sex). The aim of our analysis is to find a threshold of $\beta$ that can be used to determine if a suspect had high blood alcohol levels while driving. Therefore we want to investigate further than the expectation, $E(\beta | x)$, and examine the spread of the whole conditional distribution. When investigating quantiles of linear models, it is more accurate to use quantile regression [@RodriguezYao2017]. As the square root made little difference, we adapt our quantile regression from the initial linear model above.
+The biggest issue with the linear model above is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model (weight, height and sex). The aim of our analysis is to find a threshold of $\beta$ that can be used to determine if a suspect had high blood alcohol levels while driving. Therefore we want to investigate further than the expectation, $E(\beta | x)$, and examine the spread of the whole conditional distribution, $\beta | x$. When investigating quantiles of linear models, it is more accurate to use quantile regression [@RodriguezYao2017]. As the square root made little difference, we adapt our quantile regression from the initial linear model above.
 
-To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method discussed in the section above, we have to find $E(\beta | x) + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results.
+To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method, we have to find $E(\beta | x) + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results.
 
 The subtle differences between the methods produce different final results, as shown in Figure 12.
 
@@ -752,14 +760,13 @@ quantile_v_lm_plot <- ggplot() +
       "rq_pred"      = "darkred"
     ),
     labels = c(
-      "lm_pred_mean" = "Linear Model (Mean Prediction)",
-      "lm_q025"      = "2.5% Quantile of Linear Model Residuals",
-      "rq_pred"      = "Quantile Regression (τ = 0.025)"
+      "lm_q025"      = "Linear Model 2.5%",
+      "rq_pred"      = "Quantile Linear Model 2.5%"
     )
   ) +
   # Labels and theme
   labs(
-    title = expression("Figure 12: Actual vs Predicted 2.5% quantile of " * beta),
+    title = expression("Figure 12: Actual vs Predicted 2.5% Quantile of " * beta),
     x = expression("Actual " * beta),
     y = expression("Predicted " * beta),
     color = "Model Type"
@@ -775,17 +782,11 @@ quantile_v_lm_plot
 
 **Limitations of the Current Approach**
 
-The current forensic practice uses a single threshold - the 2.5th percentile of the elimination rate distribution - to make binary decisions about whether an individual exceeded the legal limit. When a suspect's blood alcohol is measured at the police station, forensic scientists calculate what their level would have been at the time of driving using the formula:
-
-$$
-C_0 = C_t + \beta t
-$$
-
-where $C_t$ is the measured blood alcohol concentration, $\beta$ is the elimination rate, and $t$ is the elapsed time (in hours) since driving.
+The current forensic practice uses a single threshold - the 2.5th percentile of the distribution of $\beta$ - to make binary decisions about whether an individual exceeded the legal limit.
 
 Currently, if the back-calculated $C_0$ using the 2.5th percentile of $\beta$ exceeds the legal limit, the individual is reported as being over the limit. While this approach is straightforward to implement, it has several significant drawbacks:
 
-1.  **It treats uncertainty as certainty:** Using a single value for $\beta$ implues precision that does not exist. Our analysis shows that $\beta$ varies considerably between individuals.
+1.  **It treats uncertainty as certainty:** Using a single value for $\beta$ implies precision that does not exist. Our analysis shows that $\beta$ varies considerably between individuals.
 
 2.  **It ignores individual characteristics:** The current method applies the same $\beta$ value to everyone, despite clear evidence that elimination rates differ based on weight, height, and sex.
 
@@ -806,7 +807,7 @@ We recommend that Police Scotland adopt a reporting framework that explicitly ac
 2.  **The estimated BAC at time of driving:**
 
 -   A point estimate for $C_0$ (the most likely value)
--   A 95% uncertainty interval for $C_0$ (the range of plausible values)
+-   A 95% prediction interval for $C_0$ (the range of plausible values)
 
 3.  **A probability statement:**
 
@@ -816,15 +817,15 @@ This approach transparently communicates both what we know and what remains unce
 
 ### Method 1: Fitted Distribution (Whole Population)
 
-By fitting a Gamma distribution to the observed elimination rates across the entire dataset, we obtain a smooth representation of how $\beta$ varies in the population. The fitted distribution has parameters $\alpha$ = 31.95 and $\lambda$ = 173.71.
+By fitting a Gamma distribution to the observed elimination rates across the entire dataset, we obtain a smooth representation of how $\beta$ varies in the data. The fitted distribution is $\beta \sim \text{Gamma}(\alpha = 31.95, \lambda = 173.71)$.
 
-Using this distribution, we can calculate:
+Using this distribution, we can calculate the probability that the individual exceeded the legal limit at the time of driving,
 
 $$
 \begin{eqnarray}
-\mathbb{P}(C_0 > x) &=& 1 - F_{Gamma}\left(\frac{x - C_t}{t}\right)
+\mathbb{P}(C_0 > x) &=& 1 - F_{Gamma}\left(\frac{x - C_t}{t}\right),
 \end{eqnarray}
-$$ where $x$ is the legal limit (0.47 g/kg) and $F_{Gamma}$ is the cumulative distribution function of the fitted Gamma distribution. The 95% uncertainty interval for $C_0$ is constructed using the 2.5th and 97.5th percentiles of the Gamma distribution:
+$$where $x$ is the legal limit (0.47 g/kg) and $F_{Gamma}$ is the cumulative distribution function of the fitted Gamma distribution. The 95% prediction interval for $C_0$ is constructed using the 2.5th and 97.5th percentiles of the Gamma distribution:
 
 $$
 C_0 \in [C_t + \beta_{0.025} \times t,\ C_t + \beta_{0.975} \times t]
@@ -832,14 +833,14 @@ $$
 
 **Advantages:** Simple to implement; requires only the measured BAC and elapsed time; provides conservative estimates that account for population-wide variability.
 
-**Limitations:** Does not incorporate individual characteristics; treats a 20-year-old male and a 70-year-old female identically.
+**Limitations:** Does not incorporate individual characteristics. For example, it treats a 20-year-old male and a 70-year-old female identically.
 
 ### Method 2: Sex-Specific Fitted Distributions
 
 Our analysis revealed clear differences in elimination rates between males and females. We can fit separate Gamma distributions for each sex:
 
--   Males: $\alpha$ = 29.87, $\lambda$ = 156.23 (2.5th percentile: 0.122 g/kg/h)
--   Females: $\alpha$ = 38.73, $\lambda$ = 210.12 (2.5th percentile: 0.143 g/kg/h)
+-   $\beta_{male} \sim \text{Gamma}(\alpha = 36.16, \lambda = 207.83)$ with 2.5th percentile: 0.122 g/kg/h,
+-   $\beta_{female} \sim \text{Gamma}(\alpha = 40.00, \lambda = 199.77)$ with 2.5th percentile: 0.143 g/kg/h.
 
 This provides more tailored estimates while maintaining simplicity.
 
@@ -851,13 +852,11 @@ This provides more tailored estimates while maintaining simplicity.
 
 Quantile regression allows us to model how the lower and upper bounds of the elimination rate vary with individual characteristics. Rather than predicting the average $\beta$ for someone with given characteristics, this method directly estimates the 2.5th and 97.5th percentiles of their elimination rate.
 
-The model takes the form:
-
-$$
+The model takes the form:$$
 \beta = f(\text{weight, height, sex})
 $$ For a given individual, we obtain personalized bounds: $\beta^{individual}_{0.025}$ and $\beta^{individual}_{0.975}$.
 
-**Advantages:** Fully accounts for individual variability; provides the most accurate uncertainty intervals; does not assume constant variability across the population.
+**Advantages:** Fully accounts for individual variability; provides the most accurate prediction intervals; does not assume constant variability across the population.
 
 **Limitations:** Requires more information about the individual; slightly more complex to implement.
 
@@ -875,25 +874,25 @@ This probabilistic framework offers several advantages:
 
 ## Applying Various Approaches
 
-To illustrate these methods, consider a 70-year-old female (weight: 70 kg, height: 160 cm) who provides a blood sample 2 hours after driving, with a measured BAC of $C_t = 0.15$ g/kg. The legal limit is 0.47 g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
+To illustrate these methods, consider a 70-year-old female (weight: 70 kg, height: 160 cm) who provides a blood sample 2 hours after driving, with a measured BAC of $C_t$ = 0.15 g/kg. The legal limit is 0.47 g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
 
 **1. Current Approach**
 
-Using $\beta = 0.126$ g/kg/h (the fixed 2.5th percentile):
+Using $\beta$ = 0.126 g/kg/h (the fixed 2.5th percentile):
 
 $$
 C_0 = 0.15 + 0.126 \times 2 = 0.402 \ g/kg
-$$ *Verdict*: Below the legal limit.
+$$*Verdict*: Below the legal limit.
 
 **2. Proposed Approach Using Gamma Distribution**
 
-The 95% uncertainty interval for $C_0$ is (0.40, 0.66) g/kg, and the probability that $C_0$ exceeded the legal limit is 75%.
+The 95% prediction interval for $C_0$ is (0.40, 0.66) g/kg, and the probability that $C_0$ exceeded the legal limit is 76%.
 
-*Verdict*: While the lower bound of the uncertainty interval (0.40 g/kg) is below the legal limit, there is a substantial probability (75%) that the individual's true BAC at the time of driving exceeded 0.47 g/kg. The current method would have concluded she was below the limit, but our analysis reveals considerable uncertainty in that conclusion.
+*Verdict*: While the lower bound of the prediction interval (0.40 g/kg) is below the legal limit, there is a substantial probability (76%) that the individual's true BAC at the time of driving exceeded 0.47 g/kg. The current method would have concluded she was below the limit, but our analysis reveals considerable uncertainty in that conclusion.
 
 **3. Proposed Approach Using Quantile Regression**
 
-When we account for her specific characteristics (female, 70 kg, 160 cm, 70 years old), the 95% uncertainty interval is (0.34, 0.51) g/kg. The probability that $C_0$ exceeded the legal limit is 74%.
+When we account for her specific characteristics (female, 70 kg, 160 cm, 70 years old), the 95% prediction interval is (0.34, 0.51) g/kg. The probability that $C_0$ exceeded the legal limit is 74%.
 
 **Comparison of Methods**
 
@@ -1062,7 +1061,7 @@ We propose that forensic reports include a standardised summary table that prese
 # Create summary table
 summary_table <- data.frame(
   Quantity = c(
-    "Measured BAC (C_t)",
+    "Measured BAC (Ct)",
     "Time since driving (t)",
     "Legal limit",
     "Estimated C₀ (central)",
@@ -1096,7 +1095,7 @@ kable(
 
 ## Introduction
 
-If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, the Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). The validity of this estimate is dependent on the reliability of the eyewitness' testimony, however this analysis can be combined with other evidence to support a case. Widmark's equation can be written as
+If it is too late for a blood or breath test to predict accurate results for $C_0$, but there is eyewitness evidence measuring the quantity of alcohol consumed, Widmark's equation can help to calculate the blood alcohol concentration $t$ hours after drinking ($C_t$). The validity of this estimate is dependent on the reliability of the eyewitness' testimony, however this analysis can be combined with other evidence to support a case. Widmark's equation can be written as
 
 $$
 C_t = \frac{A}{\text{Weight} \times V_d} - \beta t,
@@ -1118,7 +1117,7 @@ Hence, given we are provided the data for $A$, $\text{Weight}$, and $C_0$, we ca
 
 ## Exploratory Data Analysis
 
-Similar to our approach in analysing the effectiveness of the $\beta$ elimination rate, we can investigate the relationships between $V_d$ and characteristics of individuals (weight, height, age, and sex). It is also worth investigating the distribution of $V_d$ values across our sample.
+Similar to our approach in analysing the effectiveness of the $\beta$ elimination rate, we can investigate the relationships between $V_d$ and characteristics of individuals (weight, height, age, and sex). It is also worth investigating the distribution of $V_d$ values across our data.
 
 Figures 14-18 help us visualise these relationships.
 
@@ -1212,9 +1211,9 @@ Figures 6-9 highlight the following relationships:
 
 -   $V_d$ appears to decrease with age, although again the majority of the data lies between ages of 20-30, so general conclusions are hard to draw from the sample;
 
--   $V_d$ appears constant across both genders.
+-   $V_d$ appears constant across both sexes.
 
-The above findings suggest that $V_d$ seems to differ little across various characteristics of the individual. This suggests $V_d$ is a more generalised approach compared to the $\beta$ elimination rate.
+The above findings suggest that $V_d$ seems to differ little across various characteristics. This suggests $V_d$ is a more generalised approach compared to the $\beta$ elimination rate.
 
 It is also worth considering how the two rates are correlated, as independence is assumed between $\beta$ and $V_d$. Performing a correlation test between the two can help to deduce whether this assumption is upheld. Further, Figure 19 helps to visualise the relationship between $\beta$ and $V_d$.
 
@@ -1254,15 +1253,15 @@ Figure 19 further highlights this clear relationship between the two measures, a
 
 ### Advantages of Current Method
 
-The current method offers several key strengths that make it well-suited for forensic applications. Its straightforward approach is both easy to implement and readily explained in court proceedings, which is essential for ensuring that evidence is understood by legal professionals and juries. By using the 97.5th percentiles, the method takes a conservative stance that provides defendants with the benefit of the doubt, aligning with fundamental principles of justice. The standardised nature of this approach ensures consistency across all cases, preventing arbitrary variations in how evidence is evaluated. Furthermore, the methodology's transparency and reproducibility give it scientific rigour, allowing independent verification of results and supporting its credibility in legal contexts.
+The current method offers several key strengths that make it well-suited for forensic applications. Its straightforward approach is both easy to implement and readily explained in court proceedings, which is essential for ensuring that evidence is understood by legal professionals and juries. By using the 97.5th percentile, the method takes a conservative stance that provides defendants with the benefit of the doubt, aligning with fundamental principles of justice. The standardised nature of this approach ensures consistency across all cases, preventing arbitrary variations in how evidence is evaluated. Furthermore, the methodology's transparency and reproducibility give it scientific rigour, allowing independent verification of results and supporting its credibility in legal contexts.
 
 ### Limitations of Current Method
 
-The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, a Pearson's product-moment correlation analysis reveals a statistically significant negative correlation between these two parameters (correlation coefficient = -0.404, p-value = 3.122x10⁻⁵ \< 0.05). This finding directly contradicts the independence assumption underlying the current approach.
+The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, our exploratory data analysis shows evidence of a significant correlation. This finding directly contradicts the independence assumption underlying the current approach.
 
-Although the official forensic procedure specifies using the 97.5th percentile for both $\beta$ and $V_d$, this convention is based on policy rather than mathematical reasoning. Forensic laboratories apply the same "upper percentile rule" across all parameters to maintain consistency and to err on the side of caution, as using higher parameter values for $\beta$ and $V_d$ generally produces lower blood alcohol estimates. Mathematically Widmark's equation shows that $C_t$ decreases as $\beta$ and $V_d$ both increase, thus the maximum possible value of $C_t$ would occur for low $\beta$ and low $V_d$ values (their 2.5th percentiles). Regardless of which tail is used, the critical statistical issue with the current method is that it assumes that $\beta$ and $V_d$ are independent, when our analysis shows that $\beta$ and $V_d$ have a significant negative correlation.
+Although the official forensic procedure specifies using the 97.5th percentile for both $\beta$ and $V_d$, this convention is based on policy rather than mathematical reasoning. Forensic laboratories apply the same "upper percentile rule" across all parameters to maintain consistency and to err on the side of caution, as using higher parameter values for $\beta$ and $V_d$ generally produces lower blood alcohol estimates. Mathematically, Widmark's equation shows that $C_t$ decreases as $\beta$ and $V_d$ both increase, thus the maximum possible value of $C_t$ would occur for low $\beta$ and low $V_d$ values (their 2.5th percentiles). Regardless of which tail is used, the critical statistical issue with the current method is that it assumes that $\beta$ and $V_d$ are independent, when our analysis shows that $\beta$ and $V_d$ have a significant negative correlation.
 
-Assuming independence allows forensic analysts to combine their most extreme values (e.g. highest $\beta$ with highest $V_d$) even though such an extreme combination almost never occurs in practice. This may produce inaccurate $C_t$ estimates, exaggerating how high a person's blood alcohol concentration might have been at the time of interest or significantly underestimating. In statistical terms, the current approach treats the joint distribution of $(\beta, V_d)$ as the product of their marginal distributions, when in reality the joint distribution should account for their negative dependence structure.
+Assuming independence allows forensic analysts to combine their most extreme values (e.g. highest $\beta$ with highest $V_d$) even though such an extreme combination almost never occurs in practice. This may produce inaccurate $C_t$ estimates, exaggerating how high a person's blood alcohol concentration might have been at the time of interest or significantly underestimating. In statistical terms, the current approach treats the joint distribution of $\beta$ and $V_d$ as the product of their marginal distributions, when in reality the joint distribution should account for their negative dependence structure.
 
 ```{r joint_dist, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -1291,7 +1290,7 @@ ggplot(data, aes(x = beta, y = Vd)) +
 
 ```
 
-The above plot of the joint distribution between $\beta$ and $V_d$ shows that there are no points in the top-right corner where both parameters are at their 97.5th marginal quantile simultaneously.
+Figure 20, the plot of the joint distribution between $\beta$ and $V_d$ shows that there are no points in the top-right corner where both parameters are at their 97.5th marginal quantile simultaneously.
 
 ### Alternative Approach: Empirical Joint Distribution
 
@@ -1315,7 +1314,7 @@ Ct_independent <- (A / (weight * Vd_ind)) - beta_ind * t
 
 # Table comparison
 results_compare <- tibble(
-  Method = c("Empirical joint (β,Vd)", "Independent 97.5th percentiles"),
+  Method = c("Empirical joint (β, Vd)", "Independent 97.5th percentiles"),
   Lower_2.5 = c(round(quantile(data$Ct_joint, 0.025, na.rm = TRUE), 3), ""),
   Median     = c(round(quantile(data$Ct_joint, 0.5, na.rm = TRUE), 3), ""),
   Upper_97.5 = c(round(quantile(data$Ct_joint, 0.975, na.rm = TRUE), 3), 
@@ -1323,13 +1322,13 @@ results_compare <- tibble(
 )
 
 kable(results_compare, align = "lccc",
-      caption = "Table 5:Comparison of Empirical Joint vs Independent Ct")
+      caption = "Table 5: Comparison of Empirical Joint vs Independent Ct")
 
 ```
 
 The empirical joint $C_t$ distribution represents the upper and lower bounds of plausible blood alcohol concentrations for an individual with weight 70kg, who consumed the mean grams of alcohol from the sample and was tested 2 hours later.
 
-As seen from Table 5, this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497 which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
+As seen from Table 5, this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497, which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
 
 \newpage
 
