@@ -91,7 +91,6 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 ```
-
 \newpage
 
 # Executive Summary
@@ -274,7 +273,7 @@ density_plot <- ggplot(data, aes(x = beta)) +
                  fill = "steelblue",
                  alpha = 0.55) +
   geom_density(color = "navy", 
-               size = 1) +
+               size = 3) +
   geom_vline(aes(xintercept=mean(beta)),
              linetype = "dashed",
              color = "red",
@@ -296,66 +295,55 @@ We have seen from exploratory data analysis that alcohol elimination rate depend
 
 ```{r sex_density_plot, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
+# define colours 
+sex_cols <- c("male" = "skyblue", "female" = "seagreen")
+
 # compute group statistics
 stats <- data %>%
   group_by(sex) %>%
-  summarize(
-    mean = mean(beta),
-    q025 = quantile(beta, 0.025),
-    q975 = quantile(beta, 0.975)
+  summarise(
+    mean  = mean(beta),
+    q025  = quantile(beta, 0.025),
+    q975  = quantile(beta, 0.975)
   )
 
-# helper: color mapping for male/female lines
-stats <- stats %>%
-  mutate(line_colour = ifelse(sex == "female", "red", "blue"))
-
-# custom legend labels for quantile lines
-legend_lines <- data.frame(
-  sex = c("male", "female"),
-  color = c("blue", "red"),
-  linetype = c("dotted", "dotted"),
-  label = c("97.5th quantile (male)", "97.5th quantile (female)")
-)
-
 # main plot
-sex_density_plot <- ggplot(data, aes(x = beta, fill = sex)) +
-  # geom_histogram(aes(y = after_stat(density), color = sex),
-  #                binwidth = 0.005, alpha = 0.6, position = "identity") +
-  geom_density(aes(color = sex), size = 1, alpha = 0) +
+sex_density_plot <- ggplot(data, aes(x = beta, colour = sex)) +
   
-  # mean lines (dashed, red/blue)
+  # density curves
+  geom_density(size = 3) +
+  
+  # mean lines
   geom_vline(data = stats,
-             aes(xintercept = mean, color = line_colour, linetype = "Mean"),
+             aes(xintercept = mean, colour = sex, linetype = "Mean"),
+             size = 2.2) +
+  
+  # lower quantile
+  geom_vline(data = stats,
+             aes(xintercept = q025, colour = sex, linetype = "2.5th quantile"),
              size = 2) +
   
-  # lower quantile (dotted)
+  # upper quantile
   geom_vline(data = stats,
-             aes(xintercept = q025, color = line_colour, linetype = "2.5th quantile"),
+             aes(xintercept = q975, colour = sex, linetype = "97.5th quantile"),
              size = 2) +
   
-  # upper quantile (dotted)
-  geom_vline(data = stats,
-             aes(xintercept = q975, color = line_colour, linetype = "97.5th quantile"),
-             size = 2) +
+  # unified colour control
+  scale_colour_manual(values = sex_cols, name = "Sex") +
+  scale_fill_manual(values = sex_cols, name = "Sex") +
   
-  # consistent manual color/fill mapping
-  scale_fill_manual(values = c("male" = "skyblue", "female" = "seagreen"),
-                    name = "Sex") +
-  scale_color_manual(
-    name = "Quantile Colour",
-    values = c("male" = "skyblue", "female" = "seagreen",
-               "red" = "seagreen", "blue" = "skyblue"),
-    breaks = c("blue", "red"),
-    labels = c("male quantiles (blue)", "female quantiles (red)")
-  ) +
+  # consistent linetypes
   scale_linetype_manual(
-    name = "Statistic",
-    values = c("Mean" = "dashed", "2.5th quantile" = "dotted", "97.5th quantile" = "dotted")
+    name   = "Statistic",
+    values = c("Mean" = "dashed",
+               "2.5th quantile" = "dotted",
+               "97.5th quantile" = "dotted")
   ) +
+  
   labs(
     x = expression(beta),
     y = "Density",
-    title = expression("Figure 6: Distribution of "*beta*" by Sex")
+    title = expression("Figure 6: Distribution of " * beta * " by Sex")
   )
 
 sex_density_plot
@@ -464,53 +452,59 @@ After looking at the residuals, we conclude that Gamma is the most appropriate d
 The density graph of the Gamma distribution across the whole population of $\beta$ is shown in Figure 8 to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
 
 ```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
+# Extract fitted parameters
 gamma_shape <- gamma_fit$estimate[[1]]
-gamma_rate <- gamma_fit$estimate[[2]]
+gamma_rate  <- gamma_fit$estimate[[2]]
 
-gamma_df <- data.frame(
-  x = data$beta,
-  density = dgamma(data$beta, shape = gamma_shape, rate = gamma_rate)
-)
+# Build smooth gamma curve over the observed range
+gamma_curve <- data.frame(
+  x = seq(min(data$beta), max(data$beta), length.out = 1000)
+) %>%
+  mutate(density = dgamma(x, shape = gamma_shape, rate = gamma_rate))
 
-quantiles <- qgamma(c(0.025, 0.5, 0.975), gamma_shape, gamma_rate)
-
+# Gamma quantiles
 stats_gamma <- data.frame(
-  Quantile = rep(c("q025", "q50", "q975")),
-  value = quantiles
+  Quantile = c("2.5%", "50%", "97.5%"),
+  value = qgamma(c(0.025, 0.50, 0.975), gamma_shape, gamma_rate)
 )
 
-# plot
+# Plot
 gamma_plot <- ggplot(data, aes(x = beta)) +
+  
+  # Empirical histogram
   geom_histogram(
     aes(y = after_stat(density)),
     binwidth = 0.005,
-    fill = "steelblue",
-    alpha = 0.5,
-    position = "identity") +
+    fill = "steelblue", alpha = 0.5
+  ) +
+  
+  # Fitted gamma density
   geom_line(
-    data = gamma_df,
-    aes(x = x,
-        y = density
-        ),
-    color = "navy",
-    size = 1.2) +
+    data = gamma_curve,
+    aes(x = x, y = density),
+    colour = "navy",
+    linewidth = 3
+  ) +
+  
+  # Gamma quantile lines
   geom_vline(
     data = stats_gamma,
-    aes(xintercept = value,
-        linetype = Quantile),
-    color = "red",
-    size = 2
+    aes(xintercept = value, linetype = Quantile),
+    colour = "red",
+    linewidth = 1.2
   ) +
+  
   scale_linetype_manual(
-    values = c("q025" = "dotted", "q50" = "dashed", "q975" = "dotted"),
-    labels = c("2.5%", "50%", "97.5%")
+    values = c("2.5%" = "dotted", "50%" = "dashed", "97.5%" = "dotted")
   ) +
+  
   labs(
     x = expression(beta),
     y = "Density",
-    title = expression("Figure 8: Gamma Distribution of "*beta),
-    linetype = "Quantile"
-  ) 
+    title = expression("Figure 8: Empirical Distribution of " * beta * 
+                       " with Fitted Gamma Model"),
+    linetype = "Gamma Quantile"
+  )
 
 gamma_plot
 ```
@@ -519,93 +513,110 @@ Considering that sex is a factor variable, we can find the distributions of $\be
 
 ```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
+# Fit gamma models for each sex
 m_data <- data %>% filter(Sex == "male")
-m_gamma_fit <- fitdist(m_data$beta, distr = "gamma", method = "mle")
+m_gamma_fit  <- fitdist(m_data$beta, "gamma", method = "mle")
 m_gamma_shape <- m_gamma_fit$estimate[[1]]
-m_gamma_rate <- m_gamma_fit$estimate[[2]]
+m_gamma_rate  <- m_gamma_fit$estimate[[2]]
 m_quantiles <- qgamma(c(0.025, 0.5, 0.975), m_gamma_shape, m_gamma_rate)
 
 f_data <- data %>% filter(Sex == "female")
-f_gamma_fit <- fitdist(f_data$beta, distr = "gamma", method = "mle")
+f_gamma_fit  <- fitdist(f_data$beta, "gamma", method = "mle")
 f_gamma_shape <- f_gamma_fit$estimate[[1]]
-f_gamma_rate <- f_gamma_fit$estimate[[2]]
+f_gamma_rate  <- f_gamma_fit$estimate[[2]]
 f_quantiles <- qgamma(c(0.025, 0.5, 0.975), f_gamma_shape, f_gamma_rate)
 
-gamma_sex_df <- data.frame(
-  x = data$beta,
-  male_density   = dgamma(data$beta, shape = m_gamma_shape, rate = m_gamma_rate),
-  female_density = dgamma(data$beta, shape = f_gamma_shape, rate = f_gamma_rate)
+
+# build density curves
+m_curve <- tibble(
+  x = seq(min(m_data$beta), max(m_data$beta), length.out = 1000),
+  density = dgamma(x, m_gamma_shape, m_gamma_rate)
 )
 
-gamma_sex_long <- gamma_sex_df %>%
-  pivot_longer(cols = c(male_density, female_density),
-               names_to = "Sex",
-               values_to = "density") %>%
-  mutate(Sex = ifelse(Sex == "male_density", "male", "female"))
-
-stats_gamma_sex <- data.frame(
-  Sex = rep(c("male", "female"), each = 3),
-  Quantile = rep(c("q025", "q50", "q975"), times = 2),
-  value = c(m_quantiles, f_quantiles)
+f_curve <- tibble(
+  x = seq(min(f_data$beta), max(f_data$beta), length.out = 1000),
+  density = dgamma(x, f_gamma_shape, f_gamma_rate)
 )
 
-# plot
-sex_gamma_plot <- ggplot(data, aes(x = beta)) +
-  # # histogram with correct fill colors
-  # geom_histogram(
-  #   aes(y = after_stat(density), fill = Sex),
-  #   binwidth = 0.005, alpha = 0.5, position = "identity"
-  # ) +
+# Quantile df for geom_vline 
+m_stats <- tibble(
+  Quantile = c("2.5%", "50%", "97.5%"),
+  value = m_quantiles
+)
+
+f_stats <- tibble(
+  Quantile = c("2.5%", "50%", "97.5%"),
+  value = f_quantiles
+)
+
+
+# Male plot
+male_plot <- ggplot(m_data, aes(beta)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005,
+                 fill = "skyblue",
+                 alpha = 0.4) +
   
-  # gamma density curves (match fill colours)
-  geom_line(
-    data = gamma_sex_long,
-    aes(x = x, y = density, color = Sex, linetype = "Gamma density"),
-    size = 1.2
-  ) +
+  geom_line(data = m_curve,
+            aes(x = x, y = density),
+            colour = "skyblue4",
+            linewidth = 3) +
   
-  # quantile lines (male = blue, female = red)
-  geom_vline(
-    data = stats_gamma_sex %>%
-      mutate(line_colour = ifelse(Sex == "female", "red", "blue")),
-    aes(xintercept = value, color = line_colour, linetype = Quantile),
-    size = 2
-  ) +
+  geom_vline(data = m_stats,
+             aes(xintercept = value, linetype = Quantile),
+             colour = "skyblue4",
+             linewidth = 2) +
   
-  # color scales (fill = distribution colour, line = quantile/gamma)
-  scale_fill_manual(
-    values = c("male" = "skyblue", "female" = "seagreen"),
-    name = "Sex"
-  ) +
-  scale_color_manual(
-    name = "Quantile Colour",
-    values = c("male" = "skyblue", "female" = "seagreen",
-               "red" = "red", "blue" = "blue"),
-    breaks = c("skyblue", "seagreen", "blue", "red"),
-    labels = c("Male gamma curve", "Female gamma curve",
-               "Male quantiles (blue)", "Female quantiles (red)")
-  ) +
-  
-  # line type labels for quantiles
   scale_linetype_manual(
-    name = "Statistic",
-    values = c("Gamma density" = "solid",
-               "q025" = "dotted",
-               "q50"  = "dashed",
-               "q975" = "dotted"),
-    labels = c("Gamma density" = "Gamma density curve",
-               "q025" = "2.5th quantile",
-               "q50"  = "50th quantile (median)",
-               "q975" = "97.5th quantile")
+    values = c("2.5%" = "dotted",
+               "50%"  = "dashed",
+               "97.5%" = "dotted")
   ) +
   
   labs(
+    title = "Male",
     x = expression(beta),
-    y = "Density",
-    title = expression("Figure 9: Gamma Distributions of "*beta*" by Sex")
+    y = "Density"
+  ) 
+
+
+# Female plot
+female_plot <- ggplot(f_data, aes(beta)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005,
+                 fill = "seagreen",
+                 alpha = 0.4) +
+  
+  geom_line(data = f_curve,
+            aes(x = x, y = density),
+            colour = "seagreen4",
+            linewidth = 3) +
+  
+  geom_vline(data = f_stats,
+             aes(xintercept = value, linetype = Quantile),
+             colour = "seagreen4",
+             linewidth = 2) +
+  
+  scale_linetype_manual(
+    values = c("2.5%" = "dotted",
+               "50%"  = "dashed",
+               "97.5%" = "dotted")
+  ) +
+  
+  labs(
+    title = "Female",
+    x = expression(beta),
+    y = "Density"
+  ) 
+
+
+### --- Combine with patchwork ---
+final_plot <- male_plot + female_plot +
+  plot_annotation(
+    title = expression("Figure 9: Gamma Distributions of " * beta * " by Sex")
   )
 
-sex_gamma_plot
+final_plot
 ```
 
 We have fitted two sex-specific distributions to the data, $\beta_{male} \sim \text{Gamma}(\alpha = 36.16, \lambda = 207.83)$ and $\beta_{female} \sim \text{Gamma}(\alpha = 40.00, \lambda = 199.77)$. This is an improvement of the Gamma fit on the whole population, as we are able to more accurately predict the confidence interval of alcohol elimination rate of our suspect. For Police Scotland, this is vital as we are using as much information as we have at our disposal to make a conclusion in the case.
@@ -631,7 +642,7 @@ $$
 To analyse the accuracy of fit of this model, we can examine the residual ($\epsilon_i$) plots, as shown in Figure 10.
 
 ```{r modelling_beta, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=20, fig.align='center'}
-# --- linear modelling beta 60 attempt ---
+# --- linear modelling beta attempt ---
 
 # model incorporating all characteristics
 lm_model <- lm(beta ~ weight + height + sex, data = data)
@@ -1027,12 +1038,11 @@ p <- ggplot(results_df, aes(y = Method)) +
            colour = "darkgreen", hjust = 0, size = 9) +
   annotate("rect", xmin = x_limit - 0.005, xmax = x_limit + 0.005,
            ymin = 0.5, ymax = 3.5, alpha = 0.1, fill = "darkgreen") +
-  # Probability labels (skip Current approach)
+  
   # Probability labels (skip Current approach)
 geom_text(
-  data = subset(results_df, Method != "Current (Fixed β=0.126)"),
-  aes(x = Upper, 
-      y = Method, 
+  data = results_df %>% filter(Method != first(Method)),
+  aes(x = Upper, y = Method,
       label = sprintf("P(C[0] > 0.47) == %.3f", Prob)),
   parse = TRUE,
   hjust = 1,
@@ -1080,7 +1090,7 @@ summary_table <- data.frame(
 
 kable(
   summary_table,
-  caption = "Standardised Summary Table (Quantile Regression Approach)",
+  caption = "Table 5: Standardised Summary Table (Quantile Regression Approach)",
   col.names = c("Quantity", "Value"),
   align = c("l", "c"),
   format = "markdown"
@@ -1135,11 +1145,11 @@ data$Vd <- data$A/(data$Co *data$weight)
 # histogram of Vd
 density_plot <- ggplot(data, aes(x = Vd)) +
   geom_histogram(aes(y = after_stat(density)),
-                 binwidth = 0.005,
+                 binwidth = 0.02,
                  fill = "steelblue",
                  alpha = 0.55) +
   geom_density(color = "navy", 
-               size = 1) +
+               size = 3) +
   geom_vline(aes(xintercept=mean(Vd)),
              linetype = "dashed",
              color = "red",
@@ -1269,12 +1279,12 @@ Assuming independence allows forensic analysts to combine their most extreme val
 
 ggplot(data, aes(x = beta, y = Vd)) +
   geom_point(alpha = 0.6, color = "orange", size = 3) +
-  geom_density_2d(color = "red") +
+  geom_density_2d(color = "red", linewidth = 1.2) +
   # Add the marginal 97.5th percentiles
   geom_vline(xintercept = quantile(data$beta, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1) +
+             linetype = "dashed", color = "blue", linewidth = 1.5) +
   geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1) +
+             linetype = "dashed", color = "blue", linewidth = 1.5) +
   labs(
     title = "Figure 20: Joint Distribution of β and Vd",
     subtitle = "Blue lines show marginal 97.5th percentiles",
@@ -1322,7 +1332,7 @@ results_compare <- tibble(
 )
 
 kable(results_compare, align = "lccc",
-      caption = "Table 5: Comparison of Empirical Joint vs Independent Ct")
+      caption = "Table 6: Comparison of Empirical Joint vs Independent Ct")
 
 ```
 
