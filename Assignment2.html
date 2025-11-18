@@ -1150,7 +1150,7 @@ most accurate method for predicting the true BAC of an individual.
 Figure ? gives a summary of the most important information for use by
 Police Scotland.</p>
 <table>
-<caption>Standardised Summary Table (Quantile Regression
+<caption>Table 5: Standardised Summary Table (Quantile Regression
 Approach)</caption>
 <thead>
 <tr class="header">
@@ -1414,7 +1414,7 @@ suppressPackageStartupMessages(library(quantreg))
 suppressPackageStartupMessages(library(purrr))
 suppressPackageStartupMessages(library(broom))
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TASK 1  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%% DATA WRANGLING  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 data &lt;- read_excel(&quot;SCS_BAC_and_BrAC_split_TOP.xlsx&quot;)
 data$sex &lt;- as.factor(data$Sex)
@@ -1431,21 +1431,24 @@ weight_plot &lt;- ggplot(data, aes(x=weight, y=beta, colour = sex)) +
   geom_point(size = 3) +
   geom_smooth(method=&quot;lm&quot;, color=&quot;navy&quot;) +
   scale_colour_manual(values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;)) +
-  labs(title=&quot;Figure 1: β vs Weight&quot;, x=&quot;Weight (kg)&quot;, y=&quot;β Elimination Rate (g/kg/h)&quot;)
+  labs(title=&quot;Figure 1: β vs Weight&quot;, x=&quot;Weight (kg)&quot;,
+       y=&quot;β Elimination Rate (g/kg/h)&quot;)
 
 # beta vs height
 height_plot &lt;- ggplot(data, aes(x=height, y=beta, colour = sex)) +
   geom_point(size = 3) +
   geom_smooth(method=&quot;lm&quot;, color=&quot;navy&quot;) +
   scale_colour_manual(values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;)) +
-  labs(title=&quot;Figure 2: β vs Height&quot;, x=&quot;Height (cm)&quot;, y=&quot;β Elimination Rate (g/kg/h)&quot;)
+  labs(title=&quot;Figure 2: β vs Height&quot;, x=&quot;Height (cm)&quot;,
+       y=&quot;β Elimination Rate (g/kg/h)&quot;)
 
 # beta vs age
 age_plot &lt;- ggplot(data, aes(x=age, y=beta, colour = sex)) +
   geom_point(size = 3) +
   geom_smooth(method=&quot;lm&quot;, color=&quot;navy&quot;) +
   scale_colour_manual(values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;)) +
-  labs(title=&quot;Figure 3: β vs Age&quot;, x=&quot;Age (years)&quot;, y=&quot;β Elimination Rate (g/kg/h)&quot;)
+  labs(title=&quot;Figure 3: β vs Age&quot;, x=&quot;Age (years)&quot;,
+       y=&quot;β Elimination Rate (g/kg/h)&quot;)
 
 # beta vs gender
 sex_plot &lt;- ggplot(data, aes(x = sex, y = beta60,
@@ -1454,8 +1457,8 @@ sex_plot &lt;- ggplot(data, aes(x = sex, y = beta60,
   geom_boxplot(width = 0.2, color = &quot;navy&quot;, alpha = 0.7) +
   scale_fill_manual(values = c(&quot;seagreen&quot;, &quot;skyblue&quot;)) +
   labs(
-    title = &quot;Figure 4: β vs Gender&quot;,
-    x = &quot;Gender&quot;,
+    title = &quot;Figure 4: β vs Sex&quot;,
+    x = &quot;Sex&quot;,
     y = &quot;β Elimination Rate (g/kg/h)&quot;
   ) +
   guides(fill = &quot;none&quot;)
@@ -1463,27 +1466,28 @@ sex_plot &lt;- ggplot(data, aes(x = sex, y = beta60,
 # Compute correlation and p-value between beta and each characteristic.
 corr_table &lt;- data %&gt;%
   dplyr::select(beta, weight, age, height) %&gt;%
-  pivot_longer(cols = c(weight, age, height), names_to = &quot;Characteristic&quot;, values_to = &quot;Value&quot;) %&gt;%
+  pivot_longer(cols = c(weight, age, height), 
+               names_to = &quot;Characteristic&quot;, values_to = &quot;Value&quot;) %&gt;%
   group_by(Characteristic) %&gt;%
   summarise(
     Correlation = cor(beta, Value, use = &quot;pairwise.complete.obs&quot;),
     P_value = cor.test(beta, Value)$p.value
   ) %&gt;%
   mutate(
+    Characteristic = str_to_title(Characteristic),
     Correlation = round(Correlation, 3),
-    P_value = signif(P_value, 3)
+    P_value = signif(P_value)
   )
 
 #%%%%%%%%%%%%%%%%%%%% BETA DISTRIBUTION TESTING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Density plot of beta.
 density_plot &lt;- ggplot(data, aes(x = beta)) +
   geom_histogram(aes(y = after_stat(density)),
                  binwidth = 0.005,
                  fill = &quot;steelblue&quot;,
                  alpha = 0.55) +
   geom_density(color = &quot;navy&quot;, 
-               size = 1) +
+               size = 3) +
   geom_vline(aes(xintercept=mean(beta)),
              linetype = &quot;dashed&quot;,
              color = &quot;red&quot;,
@@ -1497,232 +1501,293 @@ density_plot &lt;- ggplot(data, aes(x = beta)) +
              color = &quot;red&quot;,
              size = 2) +
   labs(x = expression(&quot;&quot;*beta), y = &quot;Density&quot;,
-       title = expression(&quot;Distribution of &quot;*beta))
+       title = expression(&quot;Figure 5: Distribution of &quot;*beta))
+
+# define colours 
+sex_cols &lt;- c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;)
 
 # compute group statistics
 stats &lt;- data %&gt;%
   group_by(sex) %&gt;%
-  summarize(
-    mean = mean(beta),
-    q025 = quantile(beta, 0.025),
-    q975 = quantile(beta, 0.975)
+  summarise(
+    mean  = mean(beta),
+    q025  = quantile(beta, 0.025),
+    q975  = quantile(beta, 0.975)
   )
 
-# helper: color mapping for male/female lines
-stats &lt;- stats %&gt;%
-  mutate(line_colour = ifelse(sex == &quot;female&quot;, &quot;red&quot;, &quot;blue&quot;))
-
-# custom legend labels for quantile lines
-legend_lines &lt;- data.frame(
-  sex = c(&quot;male&quot;, &quot;female&quot;),
-  color = c(&quot;blue&quot;, &quot;red&quot;),
-  linetype = c(&quot;dotted&quot;, &quot;dotted&quot;),
-  label = c(&quot;97.5th quantile (male)&quot;, &quot;97.5th quantile (female)&quot;)
-)
-
 # main plot
-sex_density_plot &lt;- ggplot(data, aes(x = beta, fill = sex)) +
-  geom_histogram(aes(y = after_stat(density), color = sex),
-                 binwidth = 0.005, alpha = 0.5, position = &quot;identity&quot;) +
-  geom_density(aes(color = sex), size = 1, alpha = 0) +
+sex_density_plot &lt;- ggplot(data, aes(x = beta, colour = sex)) +
   
-  # mean lines (dashed, red/blue)
+  # density curves
+  geom_density(size = 3) +
+  
+  # mean lines
   geom_vline(data = stats,
-             aes(xintercept = mean, color = line_colour, linetype = &quot;Mean&quot;),
+             aes(xintercept = mean, colour = sex, linetype = &quot;Mean&quot;),
+             size = 2.2) +
+  
+  # lower quantile
+  geom_vline(data = stats,
+             aes(xintercept = q025, colour = sex, linetype = &quot;2.5th quantile&quot;),
              size = 2) +
   
-  # lower quantile (dotted)
+  # upper quantile
   geom_vline(data = stats,
-             aes(xintercept = q025, color = line_colour, linetype = &quot;2.5th quantile&quot;),
+             aes(xintercept = q975, colour = sex, linetype = &quot;97.5th quantile&quot;),
              size = 2) +
   
-  # upper quantile (dotted)
-  geom_vline(data = stats,
-             aes(xintercept = q975, color = line_colour, linetype = &quot;97.5th quantile&quot;),
-             size = 2) +
+  # unified colour control
+  scale_colour_manual(values = sex_cols, name = &quot;Sex&quot;) +
+  scale_fill_manual(values = sex_cols, name = &quot;Sex&quot;) +
   
-  # consistent manual color/fill mapping
-  scale_fill_manual(values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;),
-                    name = &quot;Sex&quot;) +
-  scale_color_manual(
-    name = &quot;Quantile Colour&quot;,
-    values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;,
-               &quot;red&quot; = &quot;red&quot;, &quot;blue&quot; = &quot;blue&quot;),
-    breaks = c(&quot;blue&quot;, &quot;red&quot;),
-    labels = c(&quot;male quantiles (blue)&quot;, &quot;female quantiles (red)&quot;)
-  ) +
+  # consistent linetypes
   scale_linetype_manual(
-    name = &quot;Statistic&quot;,
-    values = c(&quot;Mean&quot; = &quot;dashed&quot;, &quot;2.5th quantile&quot; = &quot;dotted&quot;, &quot;97.5th quantile&quot; = &quot;dotted&quot;)
+    name   = &quot;Statistic&quot;,
+    values = c(&quot;Mean&quot; = &quot;dashed&quot;,
+               &quot;2.5th quantile&quot; = &quot;dotted&quot;,
+               &quot;97.5th quantile&quot; = &quot;dotted&quot;)
   ) +
+  
   labs(
     x = expression(beta),
     y = &quot;Density&quot;,
-    title = expression(&quot;Distribution of &quot;*beta*&quot; by Sex&quot;)
+    title = expression(&quot;Figure 6: Distribution of &quot; * beta * &quot; by Sex&quot;)
   )
 
-# Residual plots of fitted distributions
+# Fit distributions
 normal_fit &lt;- fitdist(data$beta, distr = &quot;norm&quot;, method = &quot;mle&quot;)
-beta_fit &lt;- fitdist(data$beta, distr = &quot;beta&quot;, method = &quot;mle&quot;)
-gamma_fit &lt;- fitdist(data$beta, distr = &quot;gamma&quot;, method = &quot;mle&quot;)
+beta_fit   &lt;- fitdist(data$beta, distr = &quot;beta&quot;, method = &quot;mle&quot;)
+gamma_fit  &lt;- fitdist(data$beta, distr = &quot;gamma&quot;, method = &quot;mle&quot;)
 
-# plot each fitted distribution on residual plot
 plot.legend &lt;- c(&quot;Normal&quot;, &quot;Beta&quot;, &quot;Gamma&quot;)
-denscomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
-qqcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
-cdfcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
-ppcomp(list(normal_fit, beta_fit, gamma_fit), legendtext = plot.legend)
 
-# modelling as gamma and finding 2.5% quantile
-gamma_fit &lt;- fitdist(-data$beta60, distr = &quot;gamma&quot;, method = &quot;mle&quot;)
-summary(gamma_fit)
-par(mar=c(1, 1, 1, 1))
-plot(gamma_fit)
+# Layout
+par(mfrow = c(2, 2), mar = c(5, 5, 3, 2), oma = c(0, 0, 5, 0), cex = 2)
+
+# Comparing fit of different distribution approaches.
+
+# --- DENSITY (custom lines) ---
+cols &lt;- c(&quot;red&quot;, &quot;green&quot;, &quot;blue&quot;)
+ltys &lt;- c(1, 2, 3)
+lwds &lt;- rep(5, 5)
+
+denscomp(
+  list(normal_fit, beta_fit, gamma_fit),
+  legendtext = plot.legend,
+  fitcol = cols,
+  fitlty = ltys,
+  fitlwd = lwds,
+  xlab = &quot;beta&quot;,
+  ylab = &quot;Density&quot;,
+  main = &quot;Density Comparison&quot;,
+  xlegend = &quot;topright&quot;
+)
+
+# --- QQ PLOT (use defaults) ---
+qqcomp(
+  list(normal_fit, beta_fit, gamma_fit),
+  legendtext = plot.legend,
+  fitcol = cols,
+  main = &quot;QQ Plot Comparison&quot;,
+  xlegend = &quot;bottomright&quot;
+)
+
+# --- CDF PLOT (defaults) ---
+cdfcomp(
+  list(normal_fit, beta_fit, gamma_fit),
+  legendtext = plot.legend,
+  fitcol = cols,
+  fitlty = ltys,
+  fitlwd = lwds,
+  main = &quot;CDF Comparison&quot;,
+  xlegend = &quot;bottomright&quot;
+)
+
+# --- PP PLOT (defaults) ---
+ppcomp(
+  list(normal_fit, beta_fit, gamma_fit),
+  legendtext = plot.legend,
+  fitcol = cols,
+  main = &quot;PP Plot Comparison&quot;,
+  xlegend = &quot;bottomright&quot;
+)
+
+# Gamma approach
+
+# Extract fitted parameters
 gamma_shape &lt;- gamma_fit$estimate[[1]]
-gamma_rate &lt;- gamma_fit$estimate[[2]]
-q025 &lt;- -qgamma(0.975, gamma_shape, gamma_rate)
+gamma_rate  &lt;- gamma_fit$estimate[[2]]
 
-gamma_df &lt;- data.frame(
-  x = data$beta,
-  density = dgamma(data$beta, shape = gamma_shape, rate = gamma_rate)
-)
+# Build smooth gamma curve over the observed range
+gamma_curve &lt;- data.frame(
+  x = seq(min(data$beta), max(data$beta), length.out = 1000)
+) %&gt;%
+  mutate(density = dgamma(x, shape = gamma_shape, rate = gamma_rate))
 
-quantiles &lt;- qgamma(c(0.025, 0.5, 0.975), gamma_shape, gamma_rate)
-
+# Gamma quantiles
 stats_gamma &lt;- data.frame(
-  Quantile = rep(c(&quot;q025&quot;, &quot;q50&quot;, &quot;q975&quot;)),
-  value = quantiles
+  Quantile = c(&quot;2.5%&quot;, &quot;50%&quot;, &quot;97.5%&quot;),
+  value = qgamma(c(0.025, 0.50, 0.975), gamma_shape, gamma_rate)
 )
 
-# plot gamma fit for beta.
+# Plot
 gamma_plot &lt;- ggplot(data, aes(x = beta)) +
+  
+  # Empirical histogram
   geom_histogram(
     aes(y = after_stat(density)),
     binwidth = 0.005,
-    fill = &quot;steelblue&quot;,
-    alpha = 0.5,
-    position = &quot;identity&quot;) +
+    fill = &quot;steelblue&quot;, alpha = 0.5
+  ) +
+  
+  # Fitted gamma density
   geom_line(
-    data = gamma_df,
-    aes(x = x,
-        y = density
-    ),
-    color = &quot;navy&quot;,
-    size = 1.2) +
+    data = gamma_curve,
+    aes(x = x, y = density),
+    colour = &quot;navy&quot;,
+    linewidth = 3
+  ) +
+  
+  # Gamma quantile lines
   geom_vline(
     data = stats_gamma,
-    aes(xintercept = value,
-        linetype = Quantile),
-    color = &quot;red&quot;,
-    size = 2
+    aes(xintercept = value, linetype = Quantile),
+    colour = &quot;red&quot;,
+    linewidth = 1.2
   ) +
+  
   scale_linetype_manual(
-    values = c(&quot;q025&quot; = &quot;dotted&quot;, &quot;q50&quot; = &quot;dashed&quot;, &quot;q975&quot; = &quot;dotted&quot;),
-    labels = c(&quot;2.5%&quot;, &quot;50%&quot;, &quot;97.5%&quot;)
-  ) +
-  labs(
-    x = expression(beta),
-    y = &quot;Density&quot;,
-    title = expression(&quot;Gamma Distribution of &quot;*beta),
-    linetype = &quot;Quantile&quot;
-  ) 
-
-m_data &lt;- data %&gt;% filter(Sex == &quot;male&quot;)
-m_gamma_fit &lt;- fitdist(m_data$beta, distr = &quot;gamma&quot;, method = &quot;mle&quot;)
-m_gamma_shape &lt;- m_gamma_fit$estimate[[1]]
-m_gamma_rate &lt;- m_gamma_fit$estimate[[2]]
-m_quantiles &lt;- qgamma(c(0.025, 0.5, 0.975), m_gamma_shape, m_gamma_rate)
-
-f_data &lt;- data %&gt;% filter(Sex == &quot;female&quot;)
-f_gamma_fit &lt;- fitdist(f_data$beta, distr = &quot;gamma&quot;, method = &quot;mle&quot;)
-f_gamma_shape &lt;- f_gamma_fit$estimate[[1]]
-f_gamma_rate &lt;- f_gamma_fit$estimate[[2]]
-f_quantiles &lt;- qgamma(c(0.025, 0.5, 0.975), f_gamma_shape, f_gamma_rate)
-
-gamma_sex_df &lt;- data.frame(
-  x = data$beta,
-  male_density   = dgamma(data$beta, shape = m_gamma_shape, rate = m_gamma_rate),
-  female_density = dgamma(data$beta, shape = f_gamma_shape, rate = f_gamma_rate)
-)
-
-gamma_sex_long &lt;- gamma_sex_df %&gt;%
-  pivot_longer(cols = c(male_density, female_density),
-               names_to = &quot;Sex&quot;,
-               values_to = &quot;density&quot;) %&gt;%
-  mutate(Sex = ifelse(Sex == &quot;male_density&quot;, &quot;male&quot;, &quot;female&quot;))
-
-stats_gamma_sex &lt;- data.frame(
-  Sex = rep(c(&quot;male&quot;, &quot;female&quot;), each = 3),
-  Quantile = rep(c(&quot;q025&quot;, &quot;q50&quot;, &quot;q975&quot;), times = 2),
-  value = c(m_quantiles, f_quantiles)
-)
-
-# gamma fit of beta by sex
-sex_gamma_plot &lt;- ggplot(data, aes(x = beta)) +
-  # histogram with correct fill colors
-  geom_histogram(
-    aes(y = after_stat(density), fill = Sex),
-    binwidth = 0.005, alpha = 0.5, position = &quot;identity&quot;
-  ) +
-  
-  # gamma density curves (match fill colours)
-  geom_line(
-    data = gamma_sex_long,
-    aes(x = x, y = density, color = Sex, linetype = &quot;Gamma density&quot;),
-    size = 1.2
-  ) +
-  
-  # quantile lines (male = blue, female = red)
-  geom_vline(
-    data = stats_gamma_sex %&gt;%
-      mutate(line_colour = ifelse(Sex == &quot;female&quot;, &quot;red&quot;, &quot;blue&quot;)),
-    aes(xintercept = value, color = line_colour, linetype = Quantile),
-    size = 2
-  ) +
-  
-  # color scales (fill = distribution colour, line = quantile/gamma)
-  scale_fill_manual(
-    values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;),
-    name = &quot;Sex&quot;
-  ) +
-  scale_color_manual(
-    name = &quot;Quantile Colour&quot;,
-    values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;,
-               &quot;red&quot; = &quot;red&quot;, &quot;blue&quot; = &quot;blue&quot;),
-    breaks = c(&quot;skyblue&quot;, &quot;seagreen&quot;, &quot;blue&quot;, &quot;red&quot;),
-    labels = c(&quot;Male gamma curve&quot;, &quot;Female gamma curve&quot;,
-               &quot;Male quantiles (blue)&quot;, &quot;Female quantiles (red)&quot;)
-  ) +
-  
-  # line type labels for quantiles
-  scale_linetype_manual(
-    name = &quot;Statistic&quot;,
-    values = c(&quot;Gamma density&quot; = &quot;solid&quot;,
-               &quot;q025&quot; = &quot;dotted&quot;,
-               &quot;q50&quot;  = &quot;dashed&quot;,
-               &quot;q975&quot; = &quot;dotted&quot;),
-    labels = c(&quot;Gamma density&quot; = &quot;Gamma density curve&quot;,
-               &quot;q025&quot; = &quot;2.5th quantile&quot;,
-               &quot;q50&quot;  = &quot;50th quantile (median)&quot;,
-               &quot;q975&quot; = &quot;97.5th quantile&quot;)
+    values = c(&quot;2.5%&quot; = &quot;dotted&quot;, &quot;50%&quot; = &quot;dashed&quot;, &quot;97.5%&quot; = &quot;dotted&quot;)
   ) +
   
   labs(
     x = expression(beta),
     y = &quot;Density&quot;,
-    title = expression(&quot;Gamma Distributions of &quot;*beta*&quot; by Sex&quot;)
+    title = expression(&quot;Figure 8: Empirical Distribution of &quot; * beta * 
+                         &quot; with Fitted Gamma Model&quot;),
+    linetype = &quot;Gamma Quantile&quot;
   )
 
-#%%%%%%%%%%%%%%%%%%%%%%% LINEAR MODELLING BETA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Gamma by Sex
 
-# --- linear modelling beta 60 attempt ---
+# Fit gamma models for each sex
+m_data &lt;- data %&gt;% filter(Sex == &quot;male&quot;)
+m_fit  &lt;- fitdist(m_data$beta, &quot;gamma&quot;, method = &quot;mle&quot;)
+m_shape &lt;- m_fit$estimate[[1]]
+m_rate  &lt;- m_fit$estimate[[2]]
+m_quant &lt;- qgamma(c(0.025, 0.5, 0.975), m_shape, m_rate)
+
+f_data &lt;- data %&gt;% filter(Sex == &quot;female&quot;)
+f_fit  &lt;- fitdist(f_data$beta, &quot;gamma&quot;, method = &quot;mle&quot;)
+f_shape &lt;- f_fit$estimate[[1]]
+f_rate  &lt;- f_fit$estimate[[2]]
+f_quant &lt;- qgamma(c(0.025, 0.5, 0.975), f_shape, f_rate)
+
+
+# build density curves
+m_curve &lt;- tibble(
+  x = seq(min(m_data$beta), max(m_data$beta), length.out = 1000),
+  density = dgamma(x, m_shape, m_rate)
+)
+
+f_curve &lt;- tibble(
+  x = seq(min(f_data$beta), max(f_data$beta), length.out = 1000),
+  density = dgamma(x, f_shape, f_rate)
+)
+
+# Quantile df for geom_vline 
+m_stats &lt;- tibble(
+  Quantile = c(&quot;2.5%&quot;, &quot;50%&quot;, &quot;97.5%&quot;),
+  value = m_quant
+)
+
+f_stats &lt;- tibble(
+  Quantile = c(&quot;2.5%&quot;, &quot;50%&quot;, &quot;97.5%&quot;),
+  value = f_quant
+)
+
+
+# Male plot
+male_plot &lt;- ggplot(m_data, aes(beta)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005,
+                 fill = &quot;skyblue&quot;,
+                 alpha = 0.4) +
+  
+  geom_line(data = m_curve,
+            aes(x = x, y = density),
+            colour = &quot;skyblue4&quot;,
+            linewidth = 3) +
+  
+  geom_vline(data = m_stats,
+             aes(xintercept = value, linetype = Quantile),
+             colour = &quot;skyblue4&quot;,
+             linewidth = 2) +
+  
+  scale_linetype_manual(
+    values = c(&quot;2.5%&quot; = &quot;dotted&quot;,
+               &quot;50%&quot;  = &quot;dashed&quot;,
+               &quot;97.5%&quot; = &quot;dotted&quot;)
+  ) +
+  
+  labs(
+    title = &quot;Male&quot;,
+    x = expression(beta),
+    y = &quot;Density&quot;
+  ) 
+
+
+# Female plot
+female_plot &lt;- ggplot(f_data, aes(beta)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 binwidth = 0.005,
+                 fill = &quot;seagreen&quot;,
+                 alpha = 0.4) +
+  
+  geom_line(data = f_curve,
+            aes(x = x, y = density),
+            colour = &quot;seagreen4&quot;,
+            linewidth = 3) +
+  
+  geom_vline(data = f_stats,
+             aes(xintercept = value, linetype = Quantile),
+             colour = &quot;seagreen4&quot;,
+             linewidth = 2) +
+  
+  scale_linetype_manual(
+    values = c(&quot;2.5%&quot; = &quot;dotted&quot;,
+               &quot;50%&quot;  = &quot;dashed&quot;,
+               &quot;97.5%&quot; = &quot;dotted&quot;)
+  ) +
+  
+  labs(
+    title = &quot;Female&quot;,
+    x = expression(beta),
+    y = &quot;Density&quot;
+  ) 
+
+
+#%%%%%%%%%%%%%%%%%%%%%%% LINEAR MODELLING BETA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# linear modelling beta 
 
 # model incorporating all characteristics
 lm_model &lt;- lm(beta ~ weight + height + sex, data = data)
 
 # Residual plots
-par(mfrow = c(2,2))
-plot(lm_model)
+par(mfrow = c(2, 2), mar = c(5, 5, 3, 2), oma = c(0, 0, 5, 0), cex = 2)
+
+plot(lm_model, which = 1, caption = &quot;&quot;, main = &quot;Residuals vs Fitted&quot;,
+     sub.caption = &quot;&quot;, cex.main = 1.5)
+
+plot(lm_model, which = 2, caption = &quot;&quot;, main = &quot;Q-Q Residuals&quot;,
+     sub.caption = &quot;&quot;, cex.main = 1.5)
+
+plot(lm_model, which = 3, caption = &quot;&quot;, main = &quot;Scale Location&quot;,
+     sub.caption = &quot;&quot;, cex.main = 1.5)
+
+plot(lm_model, which = 5, caption = &quot;&quot;, main = &quot;Residuals vs Leverage&quot;,
+     sub.caption = &quot;&quot;, cex.main = 1.5)
 
 # Try modelling square root of beta (residual plots indicate
 # a slight quadratic mean-variance relationship)
@@ -1730,24 +1795,29 @@ plot(lm_model)
 sqrt_lm_model &lt;- lm(sqrt(beta) ~ weight + height + sex, data = data)
 
 # Residual plots
-par(mfrow = c(2,2))
-plot(sqrt_lm_model)
+par(mfrow = c(2, 2), mar = c(5, 5, 3, 2), oma = c(0, 0, 5, 0), cex = 2)
 
-# compute group statistics
-stats &lt;- data %&gt;%
-  group_by(Sex) %&gt;%
-  summarize(
-    mean = mean(beta60),
-    q025 = quantile(beta60, 0.025),
-    q975 = quantile(beta60, 0.975)
-  )
+plot(sqrt_lm_model, which = 1, caption = &quot;&quot;, main = &quot;Residuals vs Fitted&quot;,
+     sub.caption = &quot;&quot;, cex.main = 1.5)
+
+plot(sqrt_lm_model, which = 2, caption = &quot;&quot;, main = &quot;Q-Q Residuals&quot;,
+     sub.caption = &quot;&quot;, cex.main = 1.5)
+
+plot(sqrt_lm_model, which = 3, caption = &quot;&quot;, main = &quot;Scale Location&quot;,
+     sub.caption = &quot;&quot;, cex.main = 1.5)
+
+plot(sqrt_lm_model, which = 5, caption = &quot;&quot;, main = &quot;Residuals vs Leverage&quot;,
+     sub.caption = &quot;&quot;, cex.main = 1.5)
+
+# quantile regression approach 
 
 # fit models
 lm_model &lt;- lm(beta ~ weight + height + sex, data = data)
 rq_model &lt;- rq(beta ~ weight + height + sex, data = data, tau = 0.025)
 
 # predictions for linear model
-pred_int &lt;- predict(lm_model, newdata = data, interval = &quot;prediction&quot;, level = 0.95)
+pred_int &lt;- predict(lm_model, newdata = data, interval = &quot;prediction&quot;,
+                    level = 0.95)
 
 # create df for comparing predicted vs actual
 pred_data &lt;- data %&gt;%
@@ -1768,19 +1838,13 @@ pred_data$rq_pred &lt;- predict(rq_model, newdata = data)
 # reshape
 plot_data &lt;- pred_data %&gt;%
   pivot_longer(
-    cols = c(lm_pred_mean, lm_q025, rq_pred),
+    cols = c(lm_q025, rq_pred),
     names_to = &quot;model&quot;,
     values_to = &quot;predicted_beta&quot;
   )
 
 # plot
 quantile_v_lm_plot &lt;- ggplot() +
-  # 95% prediction interval shaded area (between lm_pred_lwr and lm_pred_upr)
-  geom_ribbon(
-    data = pred_data,
-    aes(x = beta, ymin = lm_pred_lwr, ymax = lm_pred_upr),
-    fill = &quot;lightblue&quot;, alpha = 0.25
-  ) +
   # Points for models (mean LM, quantile LM, quantile regression)
   geom_point(
     data = plot_data,
@@ -1793,221 +1857,81 @@ quantile_v_lm_plot &lt;- ggplot() +
     aes(x = beta, y = predicted_beta, color = model),
     method = lm, se = TRUE, linewidth = 1
   ) +
-  # 1:1 line
-  geom_abline(slope = 1, intercept = 0, linetype = &quot;dashed&quot;, color = &quot;black&quot;) +
   # Manual colors and labels
   scale_color_manual(
     values = c(
-      &quot;lm_pred_mean&quot; = &quot;blue&quot;,
       &quot;lm_q025&quot;      = &quot;gold&quot;,
       &quot;rq_pred&quot;      = &quot;darkred&quot;
     ),
     labels = c(
-      &quot;lm_pred_mean&quot; = &quot;Linear Model (Mean Prediction)&quot;,
-      &quot;lm_q025&quot;      = &quot;2.5% Quantile of Linear Model Residuals&quot;,
-      &quot;rq_pred&quot;      = &quot;Quantile Regression (τ = 0.025)&quot;
+      &quot;lm_q025&quot;      = &quot;Linear Model 2.5%&quot;,
+      &quot;rq_pred&quot;      = &quot;Quantile Linear Model 2.5%&quot;
     )
   ) +
   # Labels and theme
   labs(
-    title = expression(&quot;Figure 12: Actual vs Predicted &quot; * beta * &quot; with 95% Prediction Interval&quot;),
+    title = expression(&quot;Figure 12: Actual vs Predicted 2.5% Quantile of &quot; * beta),
     x = expression(&quot;Actual &quot; * beta),
     y = expression(&quot;Predicted &quot; * beta),
     color = &quot;Model Type&quot;
   )
 
+# %%%%%%%%%%%%%%%%%%%%%% APPLYING VARIOUS APPROACHES %%%%%%%%%%%%%%%%%%%%%%%%%
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TASK 2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# setup from question
+test_person &lt;- data.frame(weight = 70, height = 160, age = 70, sex = &quot;female&quot;)
+Ct &lt;- 0.15
+t  &lt;- 2
 
-# Given parameters
-Ct &lt;- 0.15         # measured concentration (g/kg)
-t  &lt;- 2            # time since arrest (hours)
-x  &lt;- 0.47         # legal limit (g/kg)
+# empirical quantiles for Beta60 (population approach)
+beta_pop &lt;- quantile(data$beta, probs = c(0.025, 0.5, 0.975))
 
-# Fitted Gamma parameters for beta
-gamma_shape &lt;- 31.9538
-gamma_rate  &lt;- 173.7079
+# C0 values using population quantiles
+C0_pop &lt;- Ct + beta_pop * t
 
-# 1. Compute 2.5th and 97.5th percentiles of beta
-beta_q025 &lt;- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
-beta_q975 &lt;- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
+# gamma fitted whole population distribution
+gamma_quantiles &lt;- qgamma(c(0.025, 0.5, 0.975), gamma_shape, gamma_rate)
+C0_gamma &lt;- Ct + gamma_quantiles * t
 
-# 2. Compute 95% interval for C0
-C0_lower &lt;- Ct + beta_q025 * t
-C0_upper &lt;- Ct + beta_q975 * t
-C0_interval &lt;- c(C0_lower, C0_upper)
+# gamma fitted to males
+m_gamma_quantiles &lt;- qgamma(c(0.025, 0.5, 0.975), m_gamma_shape, m_gamma_rate)
+C0_gamma_m &lt;- Ct + m_gamma_quantiles * t
 
-# 3. Compute probability that true C0 exceeded legal limit
-beta_threshold &lt;- (x - Ct) / t
-p_over_limit &lt;- 1 - pgamma(beta_threshold, shape = gamma_shape, rate = gamma_rate)
+# gamma fitted to females
+f_gamma_quantiles &lt;- qgamma(c(0.025, 0.5, 0.975), f_gamma_shape, f_gamma_rate)
+C0_gamma_f &lt;- Ct + f_gamma_quantiles * t
 
-# 4. Monte Carlo simulation
-set.seed(123)
-n_sim &lt;- 1000
-beta_samples &lt;- rgamma(n_sim, shape = gamma_shape, rate = gamma_rate)
-C0_samples &lt;- Ct + beta_samples * t
-p_over_limit_sim &lt;- mean(C0_samples &gt; x)
+# predicted Beta using regression model
+lm_pred_vals &lt;- predict(lm_model, newdata = test_person,
+                        interval = &quot;prediction&quot;, level = 0.95)
 
-# Summaries
-C0_mean &lt;- mean(C0_samples)
-C0_sd   &lt;- sd(C0_samples)
+# C0 values from regression model
+beta_pred_lm &lt;- as.numeric(lm_pred_vals)
+names(beta_pred_lm) &lt;- c(&quot;Fitted&quot;, &quot;Lower (PI 2.5%)&quot;, &quot;Upper (PI 97.5%)&quot;)
+C0_lm &lt;- Ct + beta_pred_lm * t
 
-# Create summary table
-results &lt;- data.frame(
-  Statistic = c(
-    &quot;Interval length&quot;,
-    &quot;Lower 95% bound for C₀&quot;,
-    &quot;Upper 95% bound for C₀&quot;,
-    &quot;Analytical P(C₀ &gt; 0.47 g/kg)&quot;,
-    &quot;Simulated P(C₀ &gt; 0.47 g/kg)&quot;,
-    &quot;Mean of simulated C₀&quot;,
-    &quot;SD of simulated C₀&quot;
-  ),
-  Value = c(
-    round(C0_upper - C0_lower, 3),
-    round(C0_lower, 3),
-    round(C0_upper, 3),
-    round(p_over_limit, 3),
-    round(p_over_limit_sim, 3),
-    round(C0_mean, 3),
-    round(C0_sd, 3)
-  )
+# predicted beta using quantile regression model
+rq_pred_vals &lt;- predict(rq_model, newdata = test_person,
+                        interval = &quot;prediction&quot;, level = 0.95)
+C0_rq &lt;- Ct + rq_pred_vals * t
+
+# combine results into one comparison table 
+results_table &lt;- tibble(
+  Approach = c(&quot;Population (empirical quantiles)&quot;, &quot;Gamma Fitted&quot;,
+               &quot;Male Gamma Fitted&quot;, &quot;Female Gamma Fitted&quot;, &quot;Linear Regression&quot;,
+               &quot;Quantile Regression&quot;),
+  Lower_2.5 = c(C0_pop[1], C0_gamma[1], C0_gamma_m[1],
+                C0_gamma_f[1], C0_lm[2], C0_rq[2]),  
+  Central   = c(C0_pop[2], C0_gamma[2], C0_gamma_m[2],
+                C0_gamma_f[2], C0_lm[1], C0_rq[1]),
+  Upper_97.5 = c(C0_pop[3], C0_gamma[3], C0_gamma_m[3],
+                 C0_gamma_f[3], C0_lm[3], C0_rq[3])
 )
 
-kable(
-  results,
-  caption = &quot;Table 2: Summary of Back-Calculated Blood-Alcohol Concentration (C₀) Using Gamma Approach&quot;,
-  col.names = c(&quot;Statistic&quot;, &quot;Value&quot;),
-  align = c(&quot;l&quot;, &quot;c&quot;),
-  format = &quot;markdown&quot;
-)
-
-# Fit quantile regression models for beta
-rq_lower  &lt;- rq(beta ~ weight + age + sex, data = data, tau = 0.025)
-rq_upper  &lt;- rq(beta ~ weight + age + sex, data = data, tau = 0.975)
-
-# Predict quantile values of beta for each observation
-beta_q025 = predict(rq_lower,  newdata = data)
-beta_q975 = predict(rq_upper,  newdata = data)
-
-# Compute 95% interval for C0 for each observation
-C0_lower = Ct + mean(beta_q025) * t
-C0_upper = Ct + mean(beta_q975) * t
-C0_interval &lt;- c(C0_lower, C0_upper)
-
-# Monte Carlo-style resampling from the quantile predictions
-set.seed(123)
-n_sim &lt;- 1000
-# approximate sampling of beta between 2.5% and 97.5% quantiles
-beta_samples &lt;- runif(n_sim, min = mean(beta_q025), max = mean(beta_q975))
-C0_samples &lt;- Ct + beta_samples * t
-
-# Probability that C0 exceeded the legal limit x
-p_over_limit_sim &lt;- mean(C0_samples &gt; x)
-
-# Summaries
-C0_mean &lt;- mean(C0_samples)
-C0_sd   &lt;- sd(C0_samples)
-
-# Create summary table
-results &lt;- data.frame(
-  Statistic = c(
-    &quot;Interval Length&quot;,
-    &quot;Lower 95% bound for C₀&quot;,
-    &quot;Upper 95% bound for C₀&quot;,
-    &quot;Simulated P(C₀ &gt; 0.47 g/kg)&quot;,
-    &quot;Mean of simulated C₀&quot;,
-    &quot;SD of simulated C₀&quot;
-  ),
-  Value = c(
-    round(C0_upper - C0_lower, 3),
-    round(C0_lower, 3),
-    round(C0_upper, 3),
-    round(p_over_limit_sim, 3),
-    round(C0_mean, 3),
-    round(C0_sd, 3)
-  )
-)
-
-kable(
-  results,
-  caption = &quot;Table 3: Summary of Back-Calculated Blood-Alcohol Concentration using Quantile Regression (C₀)&quot;,
-  col.names = c(&quot;Statistic&quot;, &quot;Value&quot;),
-  align = c(&quot;l&quot;, &quot;c&quot;),
-  format = &quot;markdown&quot;
-)
-
-# Parameters
-gamma_shape &lt;- 31.9538
-gamma_rate  &lt;- 173.7079
-
-# Quantiles for beta
-beta_q025 &lt;- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
-beta_q975 &lt;- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
-
-# Case-specific parameters
-C_t &lt;- 0.15
-t &lt;- 2
-C_legal &lt;- 0.47
-
-# Derived beta that yields legal limit for C0
-beta_limit &lt;- (C_legal - C_t) / t
-
-# Sequence of beta values
-beta &lt;- seq(beta_q025, beta_q975, length.out = 1000)
-
-# Corresponding C0 values
-C0 &lt;- C_t + beta * t
-
-# Gamma PDF for beta
-pdf_beta &lt;- dgamma(beta, shape = gamma_shape, rate = gamma_rate)
-
-# Plot C0 vs beta
-plot(beta, C0, type = &quot;l&quot;, lwd = 2, col = &quot;blue&quot;,
-     xlab = expression(beta), ylab = expression(C[0]),
-     main = expression(paste(&quot;Figure 13: BAC at C_0 vs Elimination Rate (&quot;, beta, &quot;)&quot;)))
-
-# Add horizontal line for legal limit on C0 scale
-abline(h = C_legal, col = &quot;darkgreen&quot;, lwd = 2, lty = 2)
-
-# Add vertical line at beta corresponding to legal limit
-abline(v = beta_limit, col = &quot;darkgreen&quot;, lwd = 2, lty = 2)
-
-# Add marker for (beta_limit, C0 = 0.47)
-points(beta_limit, C_legal, pch = 19, col = &quot;darkgreen&quot;, cex = 1.5)
-text(beta_limit, C_legal - 0.015, labels = expression(paste(&quot;(&quot;, beta[limit], &quot;, &quot;, C[legal], &quot;)&quot;)), 
-     pos = 4, col = &quot;darkgreen&quot;)
-
-# --- Overlay PDF curve (secondary y-axis) ---
-par(new = TRUE)
-plot(beta, pdf_beta, type = &quot;n&quot;, axes = FALSE, xlab = &quot;&quot;, ylab = &quot;&quot;, ylim = c(0, max(pdf_beta)))
-
-# Shade area under the PDF curve for beta &gt; beta_limit
-shade_idx &lt;- beta &gt;= beta_limit
-polygon(c(beta[shade_idx], rev(beta[shade_idx])),
-        c(pdf_beta[shade_idx], rep(0, sum(shade_idx))),
-        col = rgb(1, 0, 0, 0.3), border = NA)
-
-# Draw the full PDF line
-lines(beta, pdf_beta, col = &quot;red&quot;, lwd = 2)
-
-# # Add secondary axis for density
-# axis(side = 4, col = &quot;red&quot;, col.axis = &quot;red&quot;)
-# mtext(&quot;Density of β&quot;, side = 4, line = 3, col = &quot;red&quot;)
-
-# Add legend
-legend(&quot;topleft&quot;,
-       legend = c(expression(C[0] == C[t] + beta*t),
-                  expression(&quot;Legal limit&quot;),
-                  expression(&quot;P(C&quot;[0]*&quot;&gt; limit)&quot;)),
-       col = c(&quot;blue&quot;, &quot;darkgreen&quot;, &quot;red&quot;),
-       lwd = c(2, 2, NA),
-       pch = c(NA, NA, 15),
-       pt.cex = 1.5,
-       bty = &quot;n&quot;,
-       cex = 0.9,
-       fill = c(NA, NA, rgb(1,0,0,0.3)))
-
+kable(results_table, digits = 3,
+      col.names = c(&quot;Approach&quot;, &quot;Lower (2.5%)&quot;, &quot;Central&quot;, &quot;Upper (97.5%)&quot;),
+      caption = &quot;Table 4: Comparison of estimated C₀ values
+      for the various approaches&quot;)
 
 # 1. Current approach (fixed beta)
 beta_fixed &lt;- 0.126
@@ -2043,18 +1967,25 @@ C0_qr_lower &lt;- Ct + mean(beta_q025_qr, na.rm = TRUE) * t
 C0_qr_upper &lt;- Ct + mean(beta_q975_qr, na.rm = TRUE) * t
 C0_qr_mean  &lt;- mean(c(C0_qr_lower, C0_qr_upper))
 
-p_qr &lt;- p_over_limit_sim
+# Approximate P(Co &gt; limit) under QR
+set.seed(123)
+n_sim &lt;- 10000
+# Sample indices and uniform draws between predicted bounds
+idx &lt;- sample(seq_along(beta_q025_qr), size = n_sim, replace = TRUE)
+beta_samples_qr &lt;- runif(n_sim, min = beta_q025_qr[idx], max = beta_q975_qr[idx])
+C0_samples_qr   &lt;- Ct + beta_samples_qr * t
+p_qr &lt;- mean(C0_samples_qr &gt; x_limit, na.rm = TRUE)
 
-# plot
+# comparison table
 results_df &lt;- tibble(
-  Method = c(&quot;Current (Fixed β=0.126)&quot;, &quot;Gamma model&quot;, &quot;Quantile regression&quot;),
+  Method = c(&quot;Current (Fixed β = 0.126)&quot;, &quot;Gamma model&quot;, &quot;Quantile regression&quot;),
   Lower  = c(C0_fixed, C0_gamma_lower, C0_qr_lower),
   Upper  = c(C0_fixed, C0_gamma_upper, C0_qr_upper),
   Mean   = c(C0_fixed, C0_gamma_mean, C0_qr_mean),
   Prob   = c(p_fixed, p_gamma, p_qr)
 )
 
-# Plot
+# Graphical comparison
 p &lt;- ggplot(results_df, aes(y = Method)) +
   # Interval bands (thin lines)
   geom_segment(aes(x = Lower, xend = Upper, y = Method, yend = Method,
@@ -2072,12 +2003,11 @@ p &lt;- ggplot(results_df, aes(y = Method)) +
            colour = &quot;darkgreen&quot;, hjust = 0, size = 9) +
   annotate(&quot;rect&quot;, xmin = x_limit - 0.005, xmax = x_limit + 0.005,
            ymin = 0.5, ymax = 3.5, alpha = 0.1, fill = &quot;darkgreen&quot;) +
-  # Probability labels (skip Current approach)
+  
   # Probability labels (skip Current approach)
   geom_text(
-    data = subset(results_df, Method != &quot;Current (Fixed β=0.126)&quot;),
-    aes(x = Upper, 
-        y = Method, 
+    data = results_df %&gt;% filter(Method != first(Method)),
+    aes(x = Upper, y = Method,
         label = sprintf(&quot;P(C[0] &gt; 0.47) == %.3f&quot;, Prob)),
     parse = TRUE,
     hjust = 1,
@@ -2092,9 +2022,39 @@ p &lt;- ggplot(results_df, aes(y = Method)) +
                                  &quot;Gamma model&quot;             = &quot;firebrick&quot;,
                                  &quot;Quantile regression&quot;     = &quot;hotpink&quot;),
                       name = &quot;Method&quot;) +
-  ggtitle(expression(&quot;Comparison of reporting frameworks for &quot; * C[0]))
+  ggtitle(expression(&quot;Figure 13: Comparison of reporting frameworks for &quot; * C[0]))
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TASK 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Recommended Framework
+
+# Create summary table
+summary_table &lt;- data.frame(
+  Quantity = c(
+    &quot;Measured BAC (Ct)&quot;,
+    &quot;Time since driving (t)&quot;,
+    &quot;Legal limit&quot;,
+    &quot;Estimated C₀ (central)&quot;,
+    &quot;95% uncertainty interval&quot;,
+    &quot;Probability C₀ exceeded legal limit&quot;
+  ),
+  Value = c(
+    &quot;0.15 g/kg&quot;,
+    &quot;2 hours&quot;,
+    &quot;0.47 g/kg&quot;,
+    &quot;0.43 g/kg&quot;,
+    &quot;(0.34, 0.51) g/kg&quot;,
+    &quot;74%&quot;
+  )
+)
+
+kable(
+  summary_table,
+  caption = &quot;Table 5: Standardised Summary Table (Quantile Regression Approach)&quot;,
+  col.names = c(&quot;Quantity&quot;, &quot;Value&quot;),
+  align = c(&quot;l&quot;, &quot;c&quot;),
+  format = &quot;markdown&quot;
+)
+
+# %%%%%%%%%%%%%%%%%%%%%%% INVESTIGATING V_d %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # define A, Co, Vd
 data$A &lt;- data$`Amount of Alcohol Consumed (g)`
@@ -2107,14 +2067,23 @@ quantile(data$Vd, probs = c(0.025, 0.5, 0.975))
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Vd EDA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# define A, Co, Vd
+data$A &lt;- data$`Amount of Alcohol Consumed (g)`
+data$Co &lt;- data$`Co (g/Kg)`
+data$Vd &lt;- data$A/(data$Co *data$weight)
+
+# view summary and quantiles of Vd
+#summary(data$Vd)
+#quantile(data$Vd, probs = c(0.025, 0.5, 0.975))
+
 # histogram of Vd
 density_plot &lt;- ggplot(data, aes(x = Vd)) +
   geom_histogram(aes(y = after_stat(density)),
-                 binwidth = 0.005,
+                 binwidth = 0.02,
                  fill = &quot;steelblue&quot;,
                  alpha = 0.55) +
   geom_density(color = &quot;navy&quot;, 
-               size = 1) +
+               size = 3) +
   geom_vline(aes(xintercept=mean(Vd)),
              linetype = &quot;dashed&quot;,
              color = &quot;red&quot;,
@@ -2127,28 +2096,29 @@ density_plot &lt;- ggplot(data, aes(x = Vd)) +
              linetype = &quot;dotted&quot;,
              color = &quot;red&quot;,
              size = 2) +
-  labs(x = &quot;Vd (L/kg)&quot;, y = &quot;Density&quot;, title = expression(&quot;Distribution of Vd&quot;))
+  labs(x = &quot;Vd (L/kg)&quot;, y = &quot;Density&quot;, 
+       title = expression(&quot;Figure 14: Distribution of Vd&quot;))
 
 # Vd vs weight
 weight_plot2 &lt;- ggplot(data, aes(x = weight, y = Vd, colour = sex)) +
   geom_point(size = 3) +
   geom_smooth(method = &quot;lm&quot;, colour = &quot;navy&quot;) +
   scale_colour_manual(values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;)) +
-  labs(title = &quot;Figure 6: Vd vs Weight&quot;, x = &quot;Weight (kg)&quot;, y = &quot;Vd (L/kg)&quot;)
+  labs(title = &quot;Figure 15: Vd vs Weight&quot;, x = &quot;Weight (kg)&quot;, y = &quot;Vd (L/kg)&quot;)
 
 # Vd vs height
 height_plot2 &lt;- ggplot(data, aes(x = height, y = Vd, colour = sex)) +
   geom_point(size = 3) +
   scale_colour_manual(values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;)) +
   geom_smooth(method = &quot;lm&quot;, colour = &quot;navy&quot;) +
-  labs(title = &quot;Figure 7: Vd vs Height&quot;, x = &quot;Height (cm)&quot;, y = &quot;Vd (L/kg)&quot;)
+  labs(title = &quot;Figure 16: Vd vs Height&quot;, x = &quot;Height (cm)&quot;, y = &quot;Vd (L/kg)&quot;)
 
 # Vd vs age
 age_plot2 &lt;- ggplot(data, aes(x = age, y = Vd, colour = sex)) +
   geom_point(size = 3) +
   scale_colour_manual(values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;)) +
   geom_smooth(method = &quot;lm&quot;, colour = &quot;navy&quot;) +
-  labs(title = &quot;Figure 8: Vd vs Age&quot;, x = &quot;Age (years)&quot;, y = &quot;Vd (L/kg)&quot;)
+  labs(title = &quot;Figure 17: Vd vs Age&quot;, x = &quot;Age (years)&quot;, y = &quot;Vd (L/kg)&quot;)
 
 # Vd vs gender
 sex_plot2 &lt;- ggplot(data, aes(x = sex, y = Vd,
@@ -2157,48 +2127,53 @@ sex_plot2 &lt;- ggplot(data, aes(x = sex, y = Vd,
   geom_boxplot(width = 0.2, color = &quot;navy&quot;, alpha = 0.7) +
   scale_fill_manual(values = c(&quot;seagreen&quot;, &quot;skyblue&quot;)) +
   labs(
-    title = &quot;Figure 9: Vd vs Gender&quot;,
+    title = &quot;Figure 18: Vd vs Gender&quot;,
     x = &quot;Gender&quot;,
     y = &quot;Vd (L/kg)&quot;
   ) +
   guides(fill = &quot;none&quot;)
 
-# Test correlation to investigate independent assumption
-cor.test(data$beta, data$Vd, use = &quot;complete.obs&quot;)
+# Test correlation to investigate independence assumption
+corr_test &lt;- cor.test(data$beta, data$Vd, use = &quot;complete.obs&quot;)
+
+# Extract correlation coefficient and p-value
+corr_coef &lt;- corr_test$estimate
+p_value   &lt;- corr_test$p.value
 
 # View quantiles of each coefficient for comparison
 beta_range &lt;- quantile(data$beta, probs = c(0.025, 0.975))
 Vd_range   &lt;- quantile(data$Vd, probs = c(0.025, 0.975))
 
-# Scatter plot between beta and V_d
+# Scatter plot between beta and Vd
 ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
-  geom_point() +
-  scale_colour_manual(values = c(&quot;male&quot; = &quot;steelblue&quot;, &quot;female&quot; = &quot;lightblue&quot;)) +
+  geom_point(size = 3) +
+  scale_colour_manual(values = c(&quot;male&quot; = &quot;skyblue&quot;, &quot;female&quot; = &quot;seagreen&quot;)) +
   geom_smooth(method = &quot;lm&quot;, color = &quot;navy&quot;) +
   labs(
-    title = &quot;Figure 10: Relationship between β and Vd&quot;,
-    subtitle = paste(&quot;Correlation =&quot;, round(cor(data$beta, data$Vd, use = &quot;complete.obs&quot;), 3)),
+    title = &quot;Figure 19: Relationship between β and Vd&quot;,
+    subtitle = paste0(
+      &quot;Correlation = &quot;, round(corr_coef, 3),
+      &quot;,  p-value = &quot;, format.pval(p_value, digits = 5, eps = .00001)
+    ),
     x = &quot;β elimination rate (g/kg/h)&quot;,
     y = &quot;Vd (L/kg)&quot;
   )
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ALT APPROACH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Visualize the joint distribution
 
 ggplot(data, aes(x = beta, y = Vd)) +
   geom_point(alpha = 0.6, color = &quot;orange&quot;, size = 3) +
-  geom_density_2d(color = &quot;red&quot;) +
+  geom_density_2d(color = &quot;red&quot;, linewidth = 1.2) +
   # Add the marginal 97.5th percentiles
   geom_vline(xintercept = quantile(data$beta, 0.975, na.rm = TRUE), 
-             linetype = &quot;dashed&quot;, color = &quot;blue&quot;, linewidth = 1) +
+             linetype = &quot;dashed&quot;, color = &quot;blue&quot;, linewidth = 1.5) +
   geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
-             linetype = &quot;dashed&quot;, color = &quot;blue&quot;, linewidth = 1) +
+             linetype = &quot;dashed&quot;, color = &quot;blue&quot;, linewidth = 1.5) +
   labs(
-    title = &quot;Joint Distribution of β and Vd&quot;,
+    title = &quot;Figure 20: Joint Distribution of β and Vd&quot;,
     subtitle = &quot;Blue lines show marginal 97.5th percentiles&quot;,
     x = &quot;β (g/kg/h)&quot;,
-    y = &quot;Vd (L/kg)&quot;
+    y = &quot;V_d (L/kg)&quot;
   ) +
   annotate(&quot;text&quot;, 
            x = quantile(data$beta, 0.975, na.rm = TRUE), 
@@ -2207,8 +2182,10 @@ ggplot(data, aes(x = beta, y = Vd)) +
            hjust = -0.1, color = &quot;blue&quot;)
 
 
-# Test person (from task 2)
-A &lt;- mean(data$A) # Chose this kinda randomly but made the most sense to me 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ALT APPROACH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Test person 
+A &lt;- mean(data$A) 
 weight &lt;- 70
 t &lt;- 2
 
@@ -2216,7 +2193,8 @@ t &lt;- 2
 data$Ct_joint &lt;- (A / (weight * data$Vd)) - data$beta * t
 
 # Compute the quantiles of C_t
-quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975), na.rm = TRUE)
+ct_quantiles &lt;- quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975),
+                         na.rm = TRUE)
 
 # Current (independent) approach
 beta_ind &lt;- quantile(data$beta, 0.975, na.rm = TRUE)
@@ -2225,12 +2203,15 @@ Ct_independent &lt;- (A / (weight * Vd_ind)) - beta_ind * t
 
 # Table comparison
 results_compare &lt;- tibble(
-  Method = c(&quot;Empirical joint (β,Vd)&quot;, &quot;Independent 97.5th percentiles&quot;),
+  Method = c(&quot;Empirical joint (β, Vd)&quot;, &quot;Independent 97.5th percentiles&quot;),
   Lower_2.5 = c(round(quantile(data$Ct_joint, 0.025, na.rm = TRUE), 3), &quot;&quot;),
   Median     = c(round(quantile(data$Ct_joint, 0.5, na.rm = TRUE), 3), &quot;&quot;),
   Upper_97.5 = c(round(quantile(data$Ct_joint, 0.975, na.rm = TRUE), 3), 
                  round(Ct_independent, 3))
-)</code></pre>
+)
+
+kable(results_compare, align = &quot;lccc&quot;,
+      caption = &quot;Table 6: Comparison of Empirical Joint vs Independent Ct&quot;)</code></pre>
 </div>
 
 
