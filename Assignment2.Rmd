@@ -39,6 +39,7 @@ suppressPackageStartupMessages({
   library(quantreg)
   library(purrr)
   library(broom)
+  library(triangle)
 })
 
 theme_set(
@@ -459,9 +460,9 @@ mtext("Figure 7: Comparison of Fitted Distributions", outer = TRUE, cex = 3, fon
 
 -   **P-P plot:** Majority of points lie on fitted line.
 
-After looking at the residuals, we conclude that Gamma is the most appropriate distribution for $\beta$. The fitted distribution is described as $\beta \sim \text{Gamma}(\alpha = 31.95, \lambda = 173.71)$.
+After looking at the residuals, we conclude that Gamma is the most appropriate distribution for $\beta$. The fitted distribution is estimated as $\beta \sim \text{Gamma}(\alpha = 31.95, \lambda = 173.71)$.
 
-The density graph of the Gamma distribution across the whole population of $\beta$ is shown in Figure 8 to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
+The density graph of the Gamma distribution across the whole population is shown in Figure 8 to demonstrate fit, again with the mean, 2.5th, and 97.5th quantiles indicated in red.
 
 ```{r gamma_density_plot, echo = FALSE, message=FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='centre'}
 gamma_shape <- gamma_fit$estimate[[1]]
@@ -515,7 +516,7 @@ gamma_plot <- ggplot(data, aes(x = beta)) +
 gamma_plot
 ```
 
-Considering that sex is a factor variable, we can find the distributions of $\beta$ dependent on whether the suspect is male of female.
+Considering that sex is a factor variable, we can approximate the distributions of $\beta$ dependent on whether the suspect is male of female.
 
 ```{r gamma_sex, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -614,12 +615,10 @@ We have fitted two sex-specific distributions to the data, $\beta_{male} \sim \t
 
 While fitting a distribution by sex has allowed us to incorporate more information on the suspect, without overfitting to a small dataset, sex is not the only characteristic given to the police. By creating a linear model, we can create a distribution for $\beta$ given a range of information about the suspect.
 
-From the exploratory data analysis, we can deduce that weight and height cause a linear downward trend in $\beta$, however, we see that age has little impact. When creating our model we are focusing on balancing accuracy and simplicity. Therefore we can create the following model, where $\alpha_j$ represent the coefficients for $j \in \{0, 1, 2, 3\}$ to model $Y_i$, where $i \in \{1, \dots, 100\}$:
-
-$$
+From the exploratory data analysis, we can deduce that weight and height cause a linear downward trend in $\beta$, however, we see that age has little impact. When creating our model we are focusing on balancing accuracy and simplicity. Therefore we can create the following model, where $\alpha_j$ represent the coefficients for $j \in \{0, 1, 2, 3\}$ to model $\beta_i$, where $i \in \{1, \dots, 100\}$:$$
 \begin{aligned}
 \text{linear model}: \quad 
-Y_i &= \alpha_0 
+E[\beta]_i &= \alpha_0 
 + \alpha_1\text{weight}_i
 + \alpha_2\text{height}_i 
 + \alpha_3\text{sex}_i
@@ -659,12 +658,12 @@ mtext("Figure 10: Residual Plots for Linear Model", outer = TRUE, cex = 3, font 
 
 -   **Residuals vs Leverage:** This plot gives us Cook’s distance, which measures the change in all model fitted values on omission of the data point in question. From the plot we can see there are no outliers, so there aren't any highly influential points in our data.
 
-To try to resolve these violations of the assumptions on residuals, we can create an alternative linear model. Given that there is a quadratic shape in the Residuals vs Fitted graph, we create the following linear model, where $\alpha_j$ represent the new coefficients for $j \in \{0, 1, 2, 3\}$ to model $Y_i$, the $i = 100$ datapoints of blood alcohol elimination rate $\beta$:
+To try to resolve these violations of the assumptions on residuals, we can create an alternative linear model. Given that there is a quadratic shape in the Residuals vs Fitted graph, we create the following linear model, where $\alpha_j$ represent the new coefficients for $j \in \{0, 1, 2, 3\}$ to model $\beta_i$, the $i = 100$ datapoints of blood alcohol elimination rate $\beta$:
 
 $$
 \begin{aligned}
 \text{square root linear model}: \quad 
-\sqrt{Y_i} &= \alpha_0 
+E[\sqrt{\beta}]_i &= \alpha_0 
 + \alpha_1\text{weight}_i 
 + \alpha_2\text{height}_i 
 + \alpha_3\text{sex}_i
@@ -700,9 +699,19 @@ The Q-Q Residuals plot is improved, however there is only marginal change in the
 
 ### Quantile Linear Model Method
 
-The biggest issue with the linear model above is that it's aim is to find the conditional mean function, $E(\beta | x)$, where $x$ represents the explanatory variables of the model (weight, height and sex). The aim of our analysis is to find a threshold of $\beta$ that can be used to determine if a suspect had high blood alcohol levels while driving. Therefore we want to investigate further than the expectation, $E(\beta | x)$, and examine the spread of the whole conditional distribution, $\beta | x$. When investigating quantiles of linear models, it is more accurate to use quantile regression [@RodriguezYao2017]. As the square root made little difference, we adapt our quantile regression from the initial linear model above.
+The biggest issue with the linear model above is that it's aim is to find the conditional mean function, $E[\beta | x]$, where $x$ represents the explanatory variables of the model (weight, height and sex). The aim of our analysis is to find a threshold of $\beta$ that can be used to determine if a suspect had high blood alcohol levels while driving. Therefore we want to investigate further than the expectation, $E[\beta | x]$, and examine the spread of the whole conditional distribution, $\beta | x$. When investigating quantiles of linear models, it is more accurate to use quantile regression [@RodriguezYao2017]. As the square root made little difference, we adapt our quantile regression from the initial linear model above.
 
-To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method, we have to find $E(\beta | x) + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results.
+Therefore we are finding the quantiles ($\tau$) of $\beta$ in thefollowing model [@quantile_reg], where $\alpha_{j,\tau}$ represent the coefficients associated with the $\tau^{\text{th}}$ quantile for $j \in \{0, 1, 2, 3\}$ to estimate $\beta_i$, where $i \in \{1, \dots, 100\}$:$$
+\begin{aligned}
+\text{quantile regression model}: \quad 
+\beta_{i,\tau} &= \alpha_{0,\tau}
++ \alpha_{1,\tau}\text{weight}_i
++ \alpha_{2,\tau}\text{height}_i 
++ \alpha_{3,\tau}\text{sex}_i
++ \epsilon_{i,\tau}, \\
+\epsilon_{i,\tau} &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
+\end{aligned}
+$$To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method, we have to find $E[\beta | x] + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results.
 
 The subtle differences between the methods produce different final results, as shown in Figure 12.
 
@@ -741,7 +750,7 @@ plot_data <- pred_data %>%
 
 # plot
 quantile_v_lm_plot <- ggplot() +
-  # Points for models (mean LM, quantile LM, quantile regression)
+  # Points for models (quantile LM, quantile regression)
   geom_point(
     data = plot_data,
     aes(x = beta, y = predicted_beta, color = model),
@@ -819,17 +828,11 @@ This approach transparently communicates both what we know and what remains unce
 
 By fitting a Gamma distribution to the observed elimination rates across the entire dataset, we obtain a smooth representation of how $\beta$ varies in the data. The fitted distribution is $\beta \sim \text{Gamma}(\alpha = 31.95, \lambda = 173.71)$.
 
-Using this distribution, we can calculate the probability that the individual exceeded the legal limit at the time of driving,
+The 95% prediction interval for $C_0$ is constructed using the 2.5th and 97.5th percentiles of the Gamma distribution:$$
+C_0 \in [C_t + \beta_{0.025} \times t,\ C_t + \beta_{0.975} \times t].
+$$Using the fitted distribution, we can also calculate the probability that the individual exceeded the legal limit at the time of driving,
 
-$$
-\begin{eqnarray}
-\mathbb{P}(C_0 > x) &=& 1 - F_{Gamma}\left(\frac{x - C_t}{t}\right),
-\end{eqnarray}
-$$where $x$ is the legal limit (0.47 g/kg) and $F_{Gamma}$ is the cumulative distribution function of the fitted Gamma distribution. The 95% prediction interval for $C_0$ is constructed using the 2.5th and 97.5th percentiles of the Gamma distribution:
-
-$$
-C_0 \in [C_t + \beta_{0.025} \times t,\ C_t + \beta_{0.975} \times t]
-$$
+$$ \begin{eqnarray} \mathbb{P}(C_0 > x) &=& 1 - F_{\beta}\left(\frac{x - C_t}{t}\right), \end{eqnarray}$$where $x$ is the legal limit (0.47 g/kg) and $F_{\beta}$ is the cumulative distribution function of the fitted Gamma distribution for $\beta$.
 
 **Advantages:** Simple to implement; requires only the measured BAC and elapsed time; provides conservative estimates that account for population-wide variability.
 
@@ -839,22 +842,37 @@ $$
 
 Our analysis revealed clear differences in elimination rates between males and females. We can fit separate Gamma distributions for each sex:
 
--   $\beta_{male} \sim \text{Gamma}(\alpha = 36.16, \lambda = 207.83)$ with 2.5th percentile: 0.122 g/kg/h,
--   $\beta_{female} \sim \text{Gamma}(\alpha = 40.00, \lambda = 199.77)$ with 2.5th percentile: 0.143 g/kg/h.
+-   $\beta_{\text{male}} \sim \text{Gamma}(\alpha = 36.16, \lambda = 207.83)$ with 2.5th percentile: 0.122 g/kg/h,
+-   $\beta_{\text{female}} \sim \text{Gamma}(\alpha = 40.00, \lambda = 199.77)$ with 2.5th percentile: 0.143 g/kg/h.
 
 This provides more tailored estimates while maintaining simplicity.
 
+Similar to above, we can find the probability that the individual exceeded the legal limit at the time of driving:
+
+-   $\mathbb{P}(C_0 > x) = 1 - F_{\beta_{\text{male}}}\left(\frac{x - C_t}{t}\right),$
+-   $\mathbb{P}(C_0 > x) = 1 - F_{\beta_{\text{female}}}\left(\frac{x - C_t}{t}\right),$
+
+where $x$ is the legal limit (0.47 g/kg) and $F_{\beta_{\text{male}}}, F_{\beta_{\text{female}}}$ are the cumulative distribution functions of the fitted sex-specific Gamma distributions for $\beta$.
+
 **Advantages:** Accounts for the most significant individual characteristic; still straightforward to implement.
 
-**Limitations:** Ignores other relevant factors such as weight and height.
+**Limitations:** Ignores other relevant factors such as weight and height, and there is more danger of overfitting the sex-specific distributions as there are fewer values once the dataset is subdivided.
 
 ### Method 3: Quantile Regression
 
 Quantile regression allows us to model how the lower and upper bounds of the elimination rate vary with individual characteristics. Rather than predicting the average $\beta$ for someone with given characteristics, this method directly estimates the 2.5th and 97.5th percentiles of their elimination rate.
 
-The model takes the form:$$
-\beta = f(\text{weight, height, sex})
-$$ For a given individual, we obtain personalized bounds: $\beta^{individual}_{0.025}$ and $\beta^{individual}_{0.975}$.
+This model finds the $(\tau$ x $100)$% quantile for $\beta$:$$
+\begin{aligned}
+\text{quantile regression model}: \quad 
+\beta_{i,\tau} &= \alpha_{0,\tau}
++ \alpha_{1,\tau}\text{weight}_i
++ \alpha_{2,\tau}\text{height}_i 
++ \alpha_{3,\tau}\text{sex}_i
++ \epsilon_{i, \tau}, \\
+\epsilon_{i,\tau} &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
+\end{aligned}
+$$For a given individual $p$, we obtain personalized bounds: $\beta_{p,0.025}$ and $\beta_{p,0.975}$. To find the probability that the individual is above the limit, we use a Monte Carlo approximation. Based on our exploratory data analysis, we deduce that the majority of $\beta$ values lie around a central value, so we choose a triangular distribution. We simulate 10000 samples from $\beta \sim \text{Triangular}(\beta_{p,0.025}, \beta_{p,0.5}, \beta_{p,0.975})$. Then, we use the equation $C_0 = C_t + \beta t$. Then we find the mean number of times that our simulated $C_0$ is greater than the legal limit:$$\begin{eqnarray} \mathbb{P}(C_0 > x) &=& \mathbb{P}(\text{# simulated samples of C}_0 \text{ s.t. C}_0 > x). \end{eqnarray}$$
 
 **Advantages:** Fully accounts for individual variability; provides the most accurate prediction intervals; does not assume constant variability across the population.
 
@@ -884,19 +902,27 @@ $$
 C_0 = 0.15 + 0.126 \times 2 = 0.402 \ g/kg
 $$*Verdict*: Below the legal limit.
 
-**2. Proposed Approach Using Gamma Distribution**
+**2. Proposed Approach Using Whole Population Gamma Distribution**
 
 The 95% prediction interval for $C_0$ is (0.40, 0.66) g/kg, and the probability that $C_0$ exceeded the legal limit is 76%.
 
 *Verdict*: While the lower bound of the prediction interval (0.40 g/kg) is below the legal limit, there is a substantial probability (76%) that the individual's true BAC at the time of driving exceeded 0.47 g/kg. The current method would have concluded she was below the limit, but our analysis reveals considerable uncertainty in that conclusion.
 
-**3. Proposed Approach Using Quantile Regression**
+**3. Proposed Approach Using Sex-Specific Gamma Distribution**
 
-When we account for her specific characteristics (female, 70 kg, 160 cm, 70 years old), the 95% prediction interval is (0.34, 0.51) g/kg. The probability that $C_0$ exceeded the legal limit is 74%.
+The 95% prediction interval for $C_0$ is (0.44, 0.68) g/kh, and the probability that $C_0$ exceeded the legal limit is 91%.
+
+*Verdict:* The lower bound of this prediction interval is very close to the legal limit, and the prediction interval found shows that there is significant evidence to indicate that the individual's true BAC at the time of driving exceeded 0.47 g/kg, with a high probability of 91%. This is a serious contrast to the current approach.
+
+**4. Proposed Approach Using Quantile Regression**
+
+We fit the model on the original dataset to find the 2.5% quantile, 50% quantile (median) and 97.5% quantile of $\beta | x$. Then we can predict given the suspect's specific characteristics (female, 70 kg, 160 cm, 70 years old), to find the 95% prediction interval is (0.43, 0.69) g/kg. The probability that $C_0$ exceeded the legal limit is 94%.
+
+*Verdict:* This method takes into account all the significant information about the suspect, and makes a measured conclusion with justified uncertainty. Under this method, there is 94% chance that the individual's true BAC exceeded the legal limit.
 
 **Comparison of Methods**
 
-The comparison of all three methods is shown in Table 4 and Figure 13, which clearly demonstrate how the current approach provides a single point estimate that masks substantial uncertainty.
+The comparison of all three methods is shown in Table 4 and Figure 13, which clearly demonstrate how the current approach provides a single point estimate that masks substantial uncertainty. Table 4 shows the results of applying our different approaches to the case described above.
 
 ```{r task_2, echo = FALSE, message = FALSE, warning=FALSE, fig.width=15, fig.height=10, fig.align='center'}
 
@@ -932,85 +958,107 @@ names(beta_pred_lm) <- c("Fitted", "Lower (PI 2.5%)", "Upper (PI 97.5%)")
 C0_lm <- Ct + beta_pred_lm * t
 
 # predicted beta using quantile regression model
-rq_pred_vals <- predict(rq_model, newdata = test_person, interval = "confidence", level = 0.95)
+# fit quantiles
+rq_fit_quantiles <- rq(beta ~ weight + height + sex, data = data, tau = c(0.025, 0.5, 0.975))
+# predict on new data
+rq_pred_vals <- predict(rq_fit_quantiles, newdata = test_person, interval = "none")
 C0_rq <- Ct + rq_pred_vals * t
 
 # combine results into one comparison table 
 results_table <- tibble(
-  Approach = c("Population (empirical quantiles)", "Gamma Fitted", "Male Gamma Fitted", "Female Gamma Fitted", "Linear Regression", "Quantile Regression"),
-  Lower_2.5 = c(C0_pop[1], C0_gamma[1], C0_gamma_m[1], C0_gamma_f[1], C0_lm[2], C0_rq[2]),  # note ordering: lwr=2nd col in pred
-  Central   = c(C0_pop[2], C0_gamma[2], C0_gamma_m[2], C0_gamma_f[2], C0_lm[1], C0_rq[1]),
-  Upper_97.5 = c(C0_pop[3], C0_gamma[3], C0_gamma_m[3], C0_gamma_f[3], C0_lm[3], C0_rq[3])
+  Approach = c("Empirical Quantiles", "Gamma Fitted", "Female Gamma Fitted", "Quantile Regression"),
+  Lower_2.5 = c(C0_pop[1], C0_gamma[1], C0_gamma_f[1], C0_rq[1]),  # note ordering: lwr=2nd col in beta_pred_lm
+  Central   = c(C0_pop[2], C0_gamma[2], C0_gamma_f[2], C0_rq[2]),
+  Upper_97.5 = c(C0_pop[3], C0_gamma[3], C0_gamma_f[3], C0_rq[3])
 )
 
 kable(results_table, digits = 3,
-      col.names = c("Approach", "Lower (2.5%)", "Central", "Upper (97.5%)"),
-      caption = "Table 4: Comparison of estimated C₀ values for the various approaches")
+      col.names = c("Approach", "Lower (2.5%)", "Median (50%)", "Upper (97.5%)"),
+      caption = "Table 4: Comparison of estimated C₀ values for 70-year-old female (weight: 70 kg, height: 160 cm) who provides a blood sample 2 hours after driving, with a measured BAC of Ct = 0.15 g/kg")
 ```
+
+Figure 13 is a visual representation of the quantiles found above, also showing the probability of exceeding the legal limit.
 
 ```{r approach comparison, echo = FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
-# Given parameters
-Ct      <- 0.15 
-t       <- 2 
+# setup from question
+test_person <- data.frame(weight = 70, height = 160, age = 70, sex = "female")
+Ct <- 0.15
+t  <- 2
 x_limit <- 0.47
 
 # 1. Current approach (fixed beta)
-beta_fixed <- 0.126
+beta_fixed <- quantile(data$beta, probs = 0.025)
 C0_fixed   <- Ct + beta_fixed * t
 p_fixed    <- as.numeric(C0_fixed > x_limit) 
 
-# 2. Gamma model (use report MLEs)
-gamma_shape <- 31.9538
-gamma_rate  <- 173.7079
-
+# 2. Gamma fitted approach to whole population
 beta_q025_gamma <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
+beta_q50_gamma <- qgamma(0.5, shape = gamma_shape, rate = gamma_rate)
 beta_q975_gamma <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
 
 C0_gamma_lower <- Ct + beta_q025_gamma * t
+C0_gamma_med <- Ct + beta_q50_gamma * t
 C0_gamma_upper <- Ct + beta_q975_gamma * t
-C0_gamma_mean  <- mean(c(C0_gamma_lower, C0_gamma_upper))
 
 # Probability analytically from Gamma CDF
 beta_threshold <- (x_limit - Ct) / t
 p_gamma <- 1 - pgamma(beta_threshold, shape = gamma_shape, rate = gamma_rate)
 
-# 3. Quantile regression approach (population-average bands)
+# 2. Gamma fitted approach to female population
+beta_q025_gamma_f <- qgamma(0.025, shape = f_gamma_shape, rate = f_gamma_rate)
+beta_q50_gamma_f <- qgamma(0.5, shape = f_gamma_shape, rate = f_gamma_rate)
+beta_q975_gamma_f <- qgamma(0.975, shape = f_gamma_shape, rate = f_gamma_rate)
+
+C0_gamma_lower_f <- Ct + beta_q025_gamma_f * t
+C0_gamma_med_f <- Ct + beta_q50_gamma_f * t
+C0_gamma_upper_f <- Ct + beta_q975_gamma_f * t
+
+# Probability analytically from Gamma CDF
+beta_threshold <- (x_limit - Ct) / t
+p_gamma_f <- 1 - pgamma(beta_threshold, shape = f_gamma_shape, rate = f_gamma_rate)
+
+# 4. Quantile regression approach
 # Fit lower/upper quantile regression for beta
-rq_lower <- rq(beta ~ weight + age + sex, data = data, tau = 0.025)
-rq_upper <- rq(beta ~ weight + age + sex, data = data, tau = 0.975)
+rq_lower <- rq(beta ~ weight + height + sex, data = data, tau = 0.025)
+rq_med <- rq(beta ~ weight + height + sex, data = data, tau = 0.5)
+rq_upper <- rq(beta ~ weight + height + sex, data = data, tau = 0.975)
 
-# Predict β quantiles for each observation in the dataset
-beta_q025_qr <- as.numeric(predict(rq_lower, newdata = data))
-beta_q975_qr <- as.numeric(predict(rq_upper, newdata = data))
+# Predict beta quantiles for each observation in the dataset
+beta_q025_qr <- as.numeric(predict(rq_lower, newdata = test_person))
+beta_q50_qr <- as.numeric(predict(rq_med, newdata = test_person))
+beta_q975_qr <- as.numeric(predict(rq_upper, newdata = test_person))
 
-# Summarize Co interval by averaging β quantiles across the population 
-C0_qr_lower <- Ct + mean(beta_q025_qr, na.rm = TRUE) * t
-C0_qr_upper <- Ct + mean(beta_q975_qr, na.rm = TRUE) * t
-C0_qr_mean  <- mean(c(C0_qr_lower, C0_qr_upper))
+# Summarize C_0 interval
+C0_qr_lower <- Ct + beta_q025_qr * t
+C0_qr_med  <- Ct + beta_q50_qr * t
+C0_qr_upper <- Ct + beta_q975_qr * t
 
-# Approximate P(Co > limit) under QR
+# Approximate P(C_0 > limit) under QR for the given suspect information
 set.seed(123)
 n_sim <- 10000
-# Sample indices and uniform draws between predicted bounds
-idx <- sample(seq_along(beta_q025_qr), size = n_sim, replace = TRUE)
-beta_samples_qr <- runif(n_sim, min = beta_q025_qr[idx], max = beta_q975_qr[idx])
-C0_samples_qr   <- Ct + beta_samples_qr * t
+# draw from triangular distribution
+beta_samples_qr <- rtriangle(
+  n = n_sim,
+  a = beta_q025_qr,
+  b = beta_q975_qr,
+  c = beta_q50_qr
+)
+# apply formula for C_0
+C0_samples_qr <- Ct + beta_samples_qr * t
 p_qr <- mean(C0_samples_qr > x_limit, na.rm = TRUE)
-
-# p_qr <- p_over_limit_sim
 
 # plot
 results_df <- tibble(
-  Method = c("Current (Fixed β = 0.126)", "Gamma model", "Quantile regression"),
-  Lower  = c(C0_fixed, C0_gamma_lower, C0_qr_lower),
-  Upper  = c(C0_fixed, C0_gamma_upper, C0_qr_upper),
-  Mean   = c(C0_fixed, C0_gamma_mean, C0_qr_mean),
-  Prob   = c(p_fixed, p_gamma, p_qr)
+  Method = c("Current (Fixed β = 0.126)", "Gamma Model", "Female Gamma Model", "Quantile Regression"),
+  Lower  = c(C0_fixed, C0_gamma_lower, C0_gamma_lower_f, C0_qr_lower),
+  Upper  = c(C0_fixed, C0_gamma_upper, C0_gamma_upper_f, C0_qr_upper),
+  Mean   = c(C0_fixed, C0_gamma_med, C0_gamma_med_f, C0_qr_med),
+  Prob   = c(p_fixed, p_gamma, p_gamma_f, p_qr)
 )
 
 # Plot
-p <- ggplot(results_df, aes(y = Method)) +
+plot <- ggplot(results_df, aes(y = Method)) +
   # Interval bands (thin lines)
   geom_segment(aes(x = Lower, xend = Upper, y = Method, yend = Method,
                    colour = Method), linewidth = 2) +
@@ -1026,9 +1074,7 @@ p <- ggplot(results_df, aes(y = Method)) +
            label = "Legal limit = 0.47 g/kg",
            colour = "darkgreen", hjust = 0, size = 9) +
   annotate("rect", xmin = x_limit - 0.005, xmax = x_limit + 0.005,
-           ymin = 0.5, ymax = 3.5, alpha = 0.1, fill = "darkgreen") +
-  # Probability labels (skip Current approach)
-  # Probability labels (skip Current approach)
+           ymin = 0.5, ymax = 4.5, alpha = 0.1, fill = "darkgreen") +
 geom_text(
   data = subset(results_df, Method != "Current (Fixed β=0.126)"),
   aes(x = Upper, 
@@ -1043,18 +1089,19 @@ geom_text(
   scale_x_continuous(name = expression(C[0]~"(g/kg)"),
                      limits = c(0.35, 0.72),
                      expand = c(0, 0)) +
-  scale_colour_manual(values = c("Current (Fixed β=0.126)" = "grey60",
-                                 "Gamma model"             = "firebrick",
-                                 "Quantile regression"     = "hotpink"),
+  scale_colour_manual(values = c("Current (Fixed β = 0.126)" = "grey60",
+                                 "Gamma Model"             = "firebrick",
+                                 "Female Gamma Model"      = "seagreen",
+                                 "Quantile Regression"     = "hotpink"),
                       name = "Method") +
-  ggtitle(expression("Figure 13: Comparison of reporting frameworks for " * C[0]))
+  ggtitle(expression("Figure 13: Comparison of Prediction Intervals for Reporting Frameworks for "*C[0]*" for 70-year-old female (weight: 70 kg, height: 160 cm) who provides a blood sample 2 hours after driving, with a measured BAC of Ct = 0.15 g/kg"))
 
-p
+plot
 ```
 
 **Recommended Report Format**
 
-We propose that forensic reports include a standardised summary table that presents all relevant information clearly and concisely:
+We propose that forensic reports include a standardised summary table that presents all relevant information clearly and concisely. Given our detailed analysis above, we conclude that quantile regression is the most accurate method for predicting the true BAC of an individual. Figure ? gives a summary of the most important information for use by Police Scotland.
 
 ```{r echo=FALSE}
 
@@ -1072,9 +1119,9 @@ summary_table <- data.frame(
     "0.15 g/kg",
     "2 hours",
     "0.47 g/kg",
-    "0.43 g/kg",
-    "(0.34, 0.51) g/kg",
-    "74%"
+    "0.54 g/kg",
+    "(0.43, 0.69) g/kg",
+    "94%"
   )
 )
 
