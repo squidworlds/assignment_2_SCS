@@ -1,6 +1,6 @@
 ---
 title: "Forensic Modelling of Blood Alcohol Evidence"
-subtitle: (4265 words)
+subtitle: (4575 words)
 author: |
   Group 20  
   Aliya Mosha (s2206786)  
@@ -96,39 +96,34 @@ document.addEventListener("DOMContentLoaded", function() {
 
 # Executive Summary
 
-In this report we investigate the statistical techniques used by the forensic services at Police Scotland when calculating blood alcohol concentrations in criminal cases associated with drink driving. In UK law, it is an offence to drive with blood alcohol concentration (BAC) above the prescribed limit (0.47g/kg). Since alcohol levels fall over time, the measured BAC at the police station is lower than at the time of driving; forensic scientists ‘back-calculate’ the earlier level using an elimination rate [@FSR2020].
+In this report we evaluate the statistical methods used by Police Scotland to estimate blood alcohol concentration (BAC) at the time of driving in drink-driving investigations. Because BAC decreases over time, the level measured at the police station is lower than the level at the time of driving. To address this, forensic analysts “back-calculate’’ the earlier concentration using an elimination rate, denoted $\beta$ [@FSR2020].
 
-The current method implemented by Police Scotland incorporates the $\beta$ elimination rate, a measure of how quickly alcohol is eliminated from the bloodstream. A fixed range for $\beta$ is applied across all individuals, using the 2.5th percentile of the distribution as a conservative cutoff. If the back‑calculated BAC exceeds the legal limit under this assumption, the individual is reported as over the limit. While simple, this binary approach does not reflect the variability of $\beta$ across individuals or the uncertainty inherent in this calculation.
+The current forensic procedure applies a single fixed range of $\beta$ values to all individuals. In particular, the 2.5th percentile of the $\beta$-distribution is used to calculate a conservative back-calculated BAC: if this estimate exceeds the legal limit (0.47 g/kg), the individual is reported as over the limit. While straightforward and easy to communicate, this method does not account for differences between individuals, nor does it represent the uncertainty associated with back-calculation.
 
-Using a dataset of 100 individuals [@thesis], we examined how $\beta$ varies based on individual characteristics (weight, height, age, sex). We found that there is significant negative correlations between $\beta$ and both weight and height, a clear sex-specific difference, with males typically showing higher elimination rates. Further, we found age has little influence on $\beta$.
+Using a dataset of 100 individuals [@thesis], we analysed how $\beta$ varies with personal characteristics. Weight and height were found to be strongly negatively associated with $\beta$, and males tended to show higher elimination rates than females. These findings indicate that $\beta$ is not constant across the population, and that a fixed threshold cannot reflect the true variability in elimination rates.
 
-We then applied these findings by comparing several modelling strategies:
+We compared several alternative modelling strategies.
 
--   **Parametric Distributions**: A Gamma distribution provided the most accurate fit to the observed $\beta$ values.
+Although a Gamma distribution provided a reasonable population-level fit and linear regression captured relationships with covariates, both approaches were limited in their ability to estimate the lower tail of the $\beta$-distribution - the region most relevant to forensic back-calculation. Quantile regression, by contrast, directly models the required conditional quantiles of $\beta$ and accommodates differences by sex, weight, and height. This makes it well-suited for personalised and uncertainty-aware BAC estimation.
 
--   **Linear Regression**: Useful approach for incorporating predictors, though a violation of assumptions was apparent.
+We therefore recommend adopting a probabilistic reporting framework based on quantile regression. Instead of giving a single yes/no conclusion, forensic reports should provide:
 
--   **Quantile Regression**: A more appropriate approach when estimating the tails of $\beta$, as used in back-calculations.
+-   the measured BAC and the elapsed time since driving;
 
-We propose replacing the current binary cutoff with a probabilistic and interval-based framework: providing the probability that the BAC at the time of driving exceeded the legal limit, along with a 95% prediction interval for the back-calculated BAC.
+```{=html}
+<!-- -->
+```
+-   the estimated BAC at the time of driving;
 
-As an example, we found that under the current approach an individual would be deemed under the legal limit, whereas our suggested approaches provide probabilities of around 75% that they were indeed over the limit. This showed a substantial likelihood that the individual was above the legal threshold at the time of driving.
+-   a 95% prediction interval reflecting statistical uncertainty;
 
-We also considered situations where no blood sample is available. In this case, we have to rely on eyewitness dose of alcohol, weight of the suspect and the so-called volume of distribution of alcohol in the blood, $V_d$. The standard approach treats $\beta$ and $V_d$ as independent and applies fixed percentile ranges for both.
+-   the probability that the driver exceeded the legal limit.
 
-We found $V_d$ and $\beta$ to be negatively correlated, meaning treating them as independent and combining extreme marginal percentiles can lead to implausible scenarios. Hence, we suggest reports should acknowledge this relationship and avoid the assumption of independence.
+Applying this framework to a case study (a 70-year-old female, 70 kg, 160 cm, measured BAC 0.15 g/kg after 2 hours), the current method concludes she was below the limit. In contrast, our quantile-regression-based analysis indicates a probability of approximately 94% that her BAC at the time of driving exceeded the legal limit, highlighting the importance of incorporating uncertainty and individual characteristics into the assessment.
 
-In conclusion, our findings support a shift towards a probabilistic reporting framework in forensic blood alcohol analysis. We recommend expert witness reports should include:
+We also considered situations where no blood sample is available and BAC must be estimated from the reported alcohol dose using Widmark’s equation. This calculation depends on both $\beta$ and the volume of distribution, $V_d$. We found that $V_d$ varies relatively little across individuals, but that $\beta$ and $V_d$ are negatively correlated, contrary to the current assumption that they are independent. Methods that treat them as independent and combine extreme values can produce BAC estimates that are not supported by the data. A more realistic approach is to base calculations on their observed joint behaviour and to report resulting BAC estimates with clear uncertainty intervals, rather than relying on fixed, extreme percentile combinations.
 
--   Measured BAC and elapsed time since driving.
-
--   The back-calculated BAC at the time of driving with a 95% uncertainty interval.
-
--   The probability of exceeding the legal limit.
-
--   Clear disclosure of assumptions about $\beta$ and $V_d$ when applicable, including their correlation.
-
-This approach ultimately enhances transparency, communicates uncertainty, and provides courts with a more scientifically defensible basis for decision making.
+Overall, our findings support a shift towards probabilistic, model-based reporting that reflects individual characteristics, acknowledges dependence between key physiological parameters, and makes the associated uncertainty transparent to the courts.
 
 \newpage
 
@@ -712,7 +707,7 @@ The Q-Q Residuals plot is improved, however there is only marginal change in the
 
 The biggest issue with the linear model above is that it's aim is to find the conditional mean function, $E[\beta | x]$, where $x$ represents the explanatory variables of the model (weight, height and sex). The aim of our analysis is to find a threshold of $\beta$ that can be used to determine if a suspect had high blood alcohol levels while driving. Therefore we want to investigate further than the expectation, $E[\beta | x]$, and examine the spread of the whole conditional distribution, $\beta | x$. When investigating quantiles of linear models, it is more accurate to use quantile regression [@RodriguezYao2017]. As the square root made little difference, we adapt our quantile regression from the initial linear model above.
 
-Therefore we are finding the quantiles ($\tau$) of $\beta$ in thefollowing model [@quantile_reg], where $\alpha_{j,\tau}$ represent the coefficients associated with the $\tau^{\text{th}}$ quantile for $j \in \{0, 1, 2, 3\}$ to estimate $\beta_i$, where $i \in \{1, \dots, 100\}$:$$
+Therefore we are finding the quantiles ($\tau$) of $\beta$ in the following model [@quantile_reg], where $\alpha_{j,\tau}$ represent the coefficients associated with the $\tau^{\text{th}}$ quantile for $j \in \{0, 1, 2, 3\}$ to estimate $\beta_i$, where $i \in \{1, \dots, 100\}$:$$
 \begin{aligned}
 \text{quantile regression model}: \quad 
 \beta_{i,\tau} &= \alpha_{0,\tau}
@@ -1104,7 +1099,7 @@ geom_text(
                                  "Female Gamma Model"      = "seagreen",
                                  "Quantile Regression"     = "hotpink"),
                       name = "Method") +
-  ggtitle(expression("Figure 13: Comparison of Prediction Intervals for Reporting Frameworks for "*C[0]*" for 70-year-old female (weight: 70 kg, height: 160 cm) who provides a blood sample 2 hours after driving, with a measured BAC of Ct = 0.15 g/kg"))
+  ggtitle(expression("Figure 13: Comparison of Prediction Intervals for Reporting Frameworks for "*C[0]*" in Case Study"))
 
 plot
 ```
@@ -1348,7 +1343,6 @@ ggplot(data, aes(x = beta, y = Vd)) +
 
 
 ```
-
 
 ### Alternative Approach: Empirical Joint Distribution
 
