@@ -1320,23 +1320,25 @@ Although the official forensic procedure specifies using the 97.5th percentile f
 
 Assuming independence allows forensic analysts to combine their most extreme values (e.g. highest $\beta$ with highest $V_d$) even though such an extreme combination almost never occurs in practice. This may produce inaccurate $C_t$ estimates, exaggerating how high a person's blood alcohol concentration might have been at the time of interest or significantly underestimating. In statistical terms, the current approach treats the joint distribution of $\beta$ and $V_d$ as the product of their marginal distributions, when in reality the joint distribution should account for their negative dependence structure.
 
+The joint distribution in Figure 20 illustrates how $\beta$ and $V_d$ co-vary in practice. The dashed blue lines mark the marginal 97.5th percentiles used under the current forensic procedure, but the plot shows that no observations lie in the upper-right region where both parameters simultaneously take these extreme values. In other words, the combination of a very high elimination rate and a very high volume of distribution - treated as a realistic possibility when assuming independence - does not occur anywhere in the data. The density contours further emphasise that the highest joint probability mass lies along a negatively sloped region, reflecting the negative correlation identified earlier. Thus, the current method constructs “best-case” scenarios using parameter pairs that are not supported by the empirical joint behaviour of the data.
+
 ```{r joint_dist, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
 # Visualize the joint distribution
 
 ggplot(data, aes(x = beta, y = Vd)) +
   geom_point(alpha = 0.6, color = "orange", size = 3) +
-  geom_density_2d(color = "red", linewidth = 1.2) +
+  geom_density_2d(color = "red") +
   # Add the marginal 97.5th percentiles
   geom_vline(xintercept = quantile(data$beta, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1.5) +
+             linetype = "dashed", color = "blue", linewidth = 1) +
   geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1.5) +
+             linetype = "dashed", color = "blue", linewidth = 1) +
   labs(
     title = "Figure 20: Joint Distribution of β and Vd",
     subtitle = "Blue lines show marginal 97.5th percentiles",
     x = "β (g/kg/h)",
-    y = "V_d (L/kg)"
+    y = "Vd (L/kg)"
   ) +
   annotate("text", 
            x = quantile(data$beta, 0.975, na.rm = TRUE), 
@@ -1347,9 +1349,10 @@ ggplot(data, aes(x = beta, y = Vd)) +
 
 ```
 
-Figure 20, the plot of the joint distribution between $\beta$ and $V_d$ shows that there are no points in the top-right corner where both parameters are at their 97.5th marginal quantile simultaneously.
 
 ### Alternative Approach: Empirical Joint Distribution
+
+The empirical joint distribution of $C_t$ provides a more realistic representation of uncertainty by preserving the dependence structure between $\beta$ and $V_d$. As an example, for an individual of 70 kg consuming the mean recorded alcohol dose, the resulting 95% empirical range for $C_t$ is (0.659, 1.455). By contrast, the value obtained under the independence assumption (0.497) - using both 97.5th percentiles simultaneously - falls outside this plausible interval, indicating that the current approach can substantially misrepresent the credible bounds of $C_t$. This suggests that the independence-based method may be overly conservative in its construction of back-calculations, in some cases underestimating blood alcohol levels at the time of interest.
 
 ```{r emp_joint_dist, echo = FALSE, message = FALSE, warning=FALSE, fig.width=20, fig.height=10, fig.align='center'}
 
@@ -1362,7 +1365,7 @@ t <- 2
 data$Ct_joint <- (A / (weight * data$Vd)) - data$beta * t
 
 # Compute the quantiles of C_t
-ct_quantiles <- quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975), na.rm = TRUE)
+Ct_quant <- quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975), na.rm = TRUE)
 
 # Current (independent) approach
 beta_ind <- quantile(data$beta, 0.975, na.rm = TRUE)
@@ -1371,21 +1374,19 @@ Ct_independent <- (A / (weight * Vd_ind)) - beta_ind * t
 
 # Table comparison
 results_compare <- tibble(
-  Method = c("Empirical joint (β, Vd)", "Independent 97.5th percentiles"),
-  Lower_2.5 = c(round(quantile(data$Ct_joint, 0.025, na.rm = TRUE), 3), ""),
-  Median     = c(round(quantile(data$Ct_joint, 0.5, na.rm = TRUE), 3), ""),
-  Upper_97.5 = c(round(quantile(data$Ct_joint, 0.975, na.rm = TRUE), 3), 
+  Method = c("Empirical joint (β,Vd)", "Independent 97.5th percentiles"),
+  Lower_2.5 = c(round(Ct_quant[1], 3), ""),
+  Median     = c(round(Ct_quant[2], 3), ""),
+  Upper_97.5 = c(round(Ct_quant[3], 3), 
                  round(Ct_independent, 3))
 )
 
 kable(results_compare, align = "lccc",
-      caption = "Table 6: Comparison of Empirical Joint vs Independent Ct")
+      caption = "Table 5:Comparison of Empirical Joint vs Independent Ct")
 
 ```
 
-The empirical joint $C_t$ distribution represents the upper and lower bounds of plausible blood alcohol concentrations for an individual with weight 70kg, who consumed the mean grams of alcohol from the sample and was tested 2 hours later.
-
-As seen from Table 5, this resulted in a range (0.659, 1.455), compared to $C_t$ when assuming independence of $\beta$ and $V_d$ which gave a value of 0.497, which is outside the range of plausible values computed using the joint distribution. This highlights the idea that the current method may be too conservative, resulting in underestimated values of the actual blood alcohol levels of a person at the time of interest.
+Taken together, these results reinforce the overarching conclusion of our findings: forensic estimates should be grounded in distributions that reflect real variability and dependence between physiological parameters, and uncertainty should be communicated explicitly rather than embedded in fixed, extreme percentile choices.
 
 \newpage
 
