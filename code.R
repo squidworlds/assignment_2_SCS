@@ -738,22 +738,45 @@ scatter <- ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
 
 # Visualize the joint distribution
 
+# Compute thresholds
+beta_thr <- quantile(data$beta, 0.975, na.rm = TRUE)
+Vd_thr   <- quantile(data$Vd, 0.975, na.rm = TRUE)
+
+# Add shaded region
+annotate("rect",
+         xmin = beta_thr,
+         xmax = Inf,
+         ymin = Vd_thr,
+         ymax = Inf,
+         alpha = 0.1,
+         fill = "blue")
+
+
 joint <- ggplot(data, aes(x = beta, y = Vd)) +
   geom_point(alpha = 0.6, color = "orange", size = 3) +
   geom_density_2d(color = "red") +
-  # Add the marginal 97.5th percentiles
-  geom_vline(xintercept = quantile(data$beta, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1) +
-  geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1) +
+  
+  # Highlight top-right corner
+  annotate("rect",
+           xmin = beta_thr,
+           xmax = Inf,
+           ymin = Vd_thr,
+           ymax = Inf,
+           alpha = 0.1,
+           fill = "blue") +
+  
+  # Add marginal 97.5th percentiles
+  geom_vline(xintercept = beta_thr, linetype = "dashed", color = "blue", linewidth = 1) +
+  geom_hline(yintercept = Vd_thr,   linetype = "dashed", color = "blue", linewidth = 1) +
+  
   labs(
     title = "Figure 19: Joint Distribution of β and Vd",
-    subtitle = "Blue lines show marginal 97.5th percentiles",
+    subtitle = "Blue region shows values above joint 97.5th percentiles",
     x = "β (g/kg/h)",
     y = "Vd (L/kg)"
   ) +
   annotate("text", 
-           x = quantile(data$beta, 0.975, na.rm = TRUE), 
+           x = beta_thr, 
            y = min(data$Vd, na.rm = TRUE),
            label = "97.5th percentile β", size = 7, 
            hjust = -0.1, color = "blue")
