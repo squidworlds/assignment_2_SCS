@@ -814,3 +814,4 @@ results_compare <- tibble(
 
 kable(results_compare, align = "lccc",
       caption = "Table 6: Comparison of Empirical Joint vs Independent Ct")
+ 
