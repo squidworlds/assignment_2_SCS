@@ -661,7 +661,7 @@ mtext("Figure 10: Residual Plots for Linear Model", outer = TRUE, cex = 3, font 
 
 The biggest issue with the linear model above is that it's aim is to find the conditional mean function, $E[\beta | x]$, where $x$ represents the explanatory variables of the model (weight, height and sex). The aim of our analysis is to find a threshold of $\beta$ that can be used to determine if a suspect had high blood alcohol levels while driving. Therefore we want to investigate further than the expectation, $E[\beta | x]$, and examine the spread of the whole conditional distribution, $\beta | x$. When investigating quantiles of linear models, it is more accurate to use quantile regression [@RodriguezYao2017].
 
-Therefore we are finding the quantiles ($\tau$) of $\beta$ in the following model [@quantile_reg], where $\alpha_{j,\tau}$ represent the coefficients associated with the $\tau^{\text{th}}$ quantile for $j \in \{0, 1, 2, 3\}$ to estimate $\beta_i$, where $i \in \{1, \dots, 100\}$:$$
+Therefore we are finding the quantiles of $\beta$ in the following model [@quantile_reg], where $\alpha_{j,\tau}$ represent the coefficients associated with the $(\tau \times 100)^{\text{th}}$ quantile for $j \in \{0, 1, 2, 3\}$ to estimate $\beta_i$, where $i \in \{1, \dots, 100\}$:$$
 \begin{aligned}
 \text{quantile regression model}: \quad 
 \beta_{i,\tau} &= \alpha_{0,\tau}
