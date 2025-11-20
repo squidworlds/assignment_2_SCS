@@ -72,7 +72,11 @@ data$age <- data$`Age (years)`
 data$beta <- -data$beta60
 ```
 
-<p style="font-size:2em; font-weight:bold;">Contents</p>
+<p style="font-size:2em; font-weight:bold;">
+
+Contents
+
+</p>
 
 ::: {#custom-toc}
 :::
@@ -88,6 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 ```
+
 \newpage
 
 # Executive Summary
@@ -106,7 +111,7 @@ We therefore recommend adopting a probabilistic reporting framework based on qua
 
 -   the measured BAC and the elapsed time since driving;
 -   the estimated BAC at the time of driving;
--   a 95% prediction interval reflecting statistical uncertainty;
+-   a 95% uncertainty interval reflecting statistical uncertainty;
 -   the probability that the driver exceeded the legal limit.
 
 Applying this framework to a case study (a 70-year-old female, 70 kg, 160 cm, measured BAC 0.15 g/kg after 2 hours), the current method concludes she was below the limit. In contrast, our quantile-regression-based analysis indicates a probability of approximately 94% that her BAC at the time of driving exceeded the legal limit, highlighting the importance of incorporating uncertainty and individual characteristics into the assessment.
@@ -785,7 +790,7 @@ This approach transparently communicates both what we know and what remains unce
 
 By fitting a Gamma distribution, we obtain a smooth representation of how $\beta$ varies in the data. The fitted distribution is $\beta \sim \text{Gamma}(\alpha = 31.95, \lambda = 173.71)$.
 
-The 95% prediction interval for $C_0$ is constructed using the 2.5th and 97.5th percentiles of the Gamma distribution:$$
+The 95% uncertainty interval for $C_0$ is constructed using the 2.5th and 97.5th percentiles of the Gamma distribution:$$
 C_0 \in [C_t + \beta_{0.025} \times t,\ C_t + \beta_{0.975} \times t].
 $$Using the fitted distribution, we can also calculate the probability that the individual exceeded the legal limit at the time of driving,
 
@@ -802,7 +807,11 @@ Our analysis revealed clear differences in elimination rates between males and f
 -   $\beta_{\text{male}} \sim \text{Gamma}(\alpha = 36.16, \lambda = 207.83)$ with 2.5th percentile: 0.122 g/kg/h,
 -   $\beta_{\text{female}} \sim \text{Gamma}(\alpha = 40.00, \lambda = 199.77)$ with 2.5th percentile: 0.143 g/kg/h.
 
-This provides more tailored estimates while maintaining simplicity.
+Depending on whether the suspect in question is male or female, we can create an uncertainty interval. For example, for a male suspect, we have
+
+$$
+C_0 \in (C_t + \beta_{male,0.025} \times t, C_t + \beta_{male,0.975} \times t). 
+$$This provides more tailored estimates while maintaining simplicity.
 
 Similar to above, we can find the probability that the individual exceeded the legal limit at the time of driving:
 
@@ -819,7 +828,7 @@ where $x$ is the legal limit (0.47 g/kg) and $F_{\beta_{\text{male}}}, F_{\beta_
 
 Quantile regression allows us to model how the lower and upper bounds of the elimination rate vary with individual characteristics. Rather than predicting the average $\beta$ for someone with given characteristics, this method directly estimates the 2.5th and 97.5th percentiles of their elimination rate.
 
-This model finds the $(\tau$ x $100)$% quantile for $\beta$:$$
+This model finds the $(\tau \times 100)^\text{th}$ quantile for $\beta$:$$
 \begin{aligned}
 \text{quantile regression model}: \quad 
 \beta_{i,\tau} &= \alpha_{0,\tau}
@@ -829,15 +838,21 @@ This model finds the $(\tau$ x $100)$% quantile for $\beta$:$$
 + \epsilon_{i, \tau}, \\
 \epsilon_{i,\tau} &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
 \end{aligned}
-$$For a given individual $p$, we obtain personalized bounds: $\beta_{p,0.025}$ and $\beta_{p,0.975}$. To find the probability that the individual is above the limit, we use a Monte Carlo approximation. Based on our exploratory data analysis, we deduce that the majority of $\beta$ values lie around a central value, so we choose a triangular distribution. We simulate 10000 samples from $\beta \sim \text{Triangular}(\beta_{p,0.025}, \beta_{p,0.5}, \beta_{p,0.975})$. Then we back-calculate $C_0$ and find the mean number of times that our simulated $C_0$ is greater than the legal limit:$$\begin{eqnarray} \mathbb{P}(C_0 > x) &=& \mathbb{P}(\text{# simulated samples of C}_0 \text{ s.t. C}_0 > x). \end{eqnarray}$$
+$$For a given individual $p$, we obtain personalized bounds from which we can create an uncertainty interval:
 
-**Advantages:** Fully accounts for individual variability; provides the most accurate prediction intervals; does not assume constant variability across the population.
+$$
+C_0 \in (C_0 + \beta_{p,0.025} \times t, C_0 + \beta_{p,0.975} \times t).
+$$
+
+To find the probability that the individual is above the limit, we use a Monte Carlo approximation. Based on our exploratory data analysis, we deduce that the majority of $\beta$ values lie around a central value, so we choose a triangular distribution. We simulate 10000 samples from $\beta \sim \text{Triangular}(\beta_{p,0.025}, \beta_{p,0.5}, \beta_{p,0.975})$. Then we back-calculate $C_0$ and find the mean number of times that our simulated $C_0$ is greater than the legal limit:$$\begin{eqnarray} \mathbb{P}(C_0 > x) &=& \mathbb{P}(\text{# simulated samples of C}_0 \text{ s.t. C}_0 > x). \end{eqnarray}$$
+
+**Advantages:** Fully accounts for individual variability; provides the most accurate uncertainty intervals; does not assume constant variability across the population.
 
 **Limitations:** Requires more information about the individual; slightly more complex to implement.
 
-**Benefits for the Justice System**
+## Benefits of Quantile Regression for the Justice System
 
-This probabilistic framework offers several advantages:
+The aim of our investigation for Police Scotland is to find the most accurate and plausible method for deciding if a suspect is above the legal drink-driving limit. The main advantage of quantile regression over the other methods described is that it takes in the full picture of the person in question. It incorporates significant physiological characteristics available to the police in a way that is practical to implement. In conjunction with the probabilistic framework, it offers several advantages:
 
 1.  Transparency: It openly acknowledges what can and cannot be determined from the evidence.
 2.  Proportionality: Cases with clear-cut evidence (very high probabilities) can be distinguished from borderline cases.
@@ -849,7 +864,7 @@ This probabilistic framework offers several advantages:
 
 ## Applying Various Approaches
 
-To illustrate these methods, consider a 70-year-old female (weight: 70 kg, height: 160 cm) who provides a blood sample 2 hours after driving, with a measured BAC of $C_t$ = 0.15 g/kg. The legal limit is 0.47 g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
+To illustrate the differences between these methods, consider a 70-year-old female (weight: 70 kg, height: 160 cm) who provides a blood sample 2 hours after driving, with a measured BAC of $C_t$ = 0.15 g/kg. The legal limit is 0.47 g/kg. The police wish to charge her with the criminal offence of driving while over the legal limit.
 
 **1. Current Approach**
 
@@ -861,19 +876,19 @@ $$*Verdict*: Below the legal limit.
 
 **2. Proposed Approach Using Whole Population Gamma Distribution**
 
-The 95% prediction interval for $C_0$ is (0.40, 0.66) g/kg, and the probability that $C_0$ exceeded the legal limit is 76%.
+The 95% uncertainty interval for $C_0$ is (0.40, 0.66) g/kg, and the probability that $C_0$ exceeded the legal limit is 76%.
 
-*Verdict*: While the lower bound of the prediction interval (0.40 g/kg) is below the legal limit, there is a substantial probability (76%) that the individual's true BAC at the time of driving exceeded 0.47 g/kg. The current method would have concluded she was below the limit, but our analysis reveals considerable uncertainty in that conclusion.
+*Verdict*: While the lower bound of the uncertainty interval (0.40 g/kg) is below the legal limit, there is a substantial probability (76%) that the individual's true BAC at the time of driving exceeded 0.47 g/kg. The current method would have concluded she was below the limit, but our analysis reveals considerable uncertainty in that conclusion.
 
 **3. Proposed Approach Using Sex-Specific Gamma Distribution**
 
-The 95% prediction interval for $C_0$ is (0.44, 0.68) g/kh, and the probability that $C_0$ exceeded the legal limit is 91%.
+The 95% uncertainty interval for $C_0$ is (0.44, 0.68) g/kh, and the probability that $C_0$ exceeded the legal limit is 91%.
 
-*Verdict:* The lower bound of this prediction interval is very close to the legal limit, and the prediction interval found shows that there is significant evidence to indicate that the individual's true BAC at the time of driving exceeded 0.47 g/kg, with a high probability of 91%. This is a serious contrast to the current approach.
+*Verdict:* The lower bound of this uncertainty interval is very close to the legal limit, and the uncertainty interval found shows that there is significant evidence to indicate that the individual's true BAC at the time of driving exceeded 0.47 g/kg, with a high probability of 91%. This is a serious contrast to the current approach.
 
 **4. Proposed Approach Using Quantile Regression**
 
-We fit the model on the original dataset to find the 2.5% quantile, 50% quantile (median) and 97.5% quantile of $\beta | x$. Then we can predict given the suspect's specific characteristics (female, 70 kg, 160 cm, 70 years old), to find the 95% prediction interval is (0.43, 0.69) g/kg. The probability that $C_0$ exceeded the legal limit is 94%.
+We fit the model on the original dataset to find the 2.5% quantile, 50% quantile (median) and 97.5% quantile of $\beta | x$. Then we can predict given the suspect's specific characteristics (female, 70 kg, 160 cm, 70 years old), to find the 95% uncertainty interval is (0.43, 0.69) g/kg. The probability that $C_0$ exceeded the legal limit is 94%.
 
 *Verdict:* This method takes into account all the significant information about the suspect, and makes a measured conclusion with justified uncertainty. Under this method, there is 94% chance that the individual's true BAC exceeded the legal limit.
 
@@ -1050,12 +1065,12 @@ geom_text(
                                  "Female Gamma Model"      = "seagreen",
                                  "Quantile Regression"     = "hotpink"),
                       name = "Method") +
-  ggtitle(expression("Figure 12: Comparison of Prediction Intervals for Reporting Frameworks for "*C[0]*" in Case Study"))
+  ggtitle(expression("Figure 12: Comparison of Uncertainty Intervals for Reporting Frameworks for "*C[0]*" in Case Study"))
 
 plot
 ```
 
-**Recommended Report Format**
+### Recommended Report Format
 
 We propose that forensic reports include a standardised summary table that presents all relevant information clearly and concisely. Given our detailed analysis above, we conclude that quantile regression is the most accurate method for predicting the true BAC of an individual. Figure ? gives a summary of the most important information for use by Police Scotland.
 
@@ -1067,7 +1082,6 @@ summary_table <- data.frame(
     "Measured BAC (Ct)",
     "Time since driving (t)",
     "Legal limit",
-    "Estimated C₀ (central)",
     "95% uncertainty interval",
     "Probability C₀ exceeded legal limit"
   ),
@@ -1075,7 +1089,6 @@ summary_table <- data.frame(
     "0.15 g/kg",
     "2 hours",
     "0.47 g/kg",
-    "0.54 g/kg",
     "(0.43, 0.69) g/kg",
     "94%"
   )
