@@ -72,11 +72,7 @@ data$age <- data$`Age (years)`
 data$beta <- -data$beta60
 ```
 
-<p style="font-size:2em; font-weight:bold;">
-
-Contents
-
-</p>
+<p style="font-size:2em; font-weight:bold;">Contents</p>
 
 ::: {#custom-toc}
 :::
@@ -110,9 +106,8 @@ We therefore recommend adopting a probabilistic reporting framework based on qua
 
 -   the measured BAC and the elapsed time since driving;
 
-```{=html}
 <!-- -->
-```
+
 -   the estimated BAC at the time of driving;
 
 -   a 95% prediction interval reflecting statistical uncertainty;
@@ -793,7 +788,9 @@ quantile_v_lm_plot
 
 \newpage
 
-## Recommended Reporting Framework for Police Scotland
+# Recommended Reporting Framework for Police Scotland
+
+## Comparison of Methods
 
 **Limitations of the Current Approach**
 
