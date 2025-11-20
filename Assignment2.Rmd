@@ -1275,7 +1275,7 @@ The current method offers several key strengths that make it well-suited for for
 
 The current forensic method assumes independence between $\beta$ and $V_d$ when calculating the range for $C_t$. However, our exploratory data analysis shows evidence of a significant correlation. This finding directly contradicts the independence assumption underlying the current approach.
 
-Although the official forensic procedure specifies using the 97.5th percentile for both $\beta$ and $V_d$, this convention is based on policy rather than mathematical reasoning. Forensic laboratories apply the same "upper percentile rule" across all parameters to maintain consistency and to err on the side of caution, as using higher parameter values for $\beta$ and $V_d$ generally produces lower blood alcohol estimates. Mathematically, Widmark's equation shows that $C_t$ decreases as $\beta$ and $V_d$ both increase, thus the maximum possible value of $C_t$ would occur for low $\beta$ and low $V_d$ values (their 2.5th percentiles). Regardless of which tail is used, the critical statistical issue with the current method is that it assumes that $\beta$ and $V_d$ are independent, when our analysis shows that $\beta$ and $V_d$ have a significant negative correlation.
+Although the official forensic procedure specifies using the 97.5th percentile for both $\beta$ and $V_d$, this method errs on the side of caution as using higher parameter values for $\beta$ and $V_d$ generally produces lower blood alcohol estimates. Mathematically, Widmark's equation shows that $C_t$ decreases as $\beta$ and $V_d$ both increase, thus the maximum possible value of $C_t$ would occur for low $\beta$ and low $V_d$ values (their 2.5th percentiles). Regardless of which tail is used, the critical statistical issue with the current method is that it assumes that $\beta$ and $V_d$ are independent, when our analysis shows that $\beta$ and $V_d$ have a significant negative correlation.
 
 Assuming independence allows forensic analysts to combine their most extreme values (e.g. highest $\beta$ with highest $V_d$) even though such an extreme combination almost never occurs in practice. This may produce inaccurate $C_t$ estimates, exaggerating how high a person's blood alcohol concentration might have been at the time of interest or significantly underestimating. In statistical terms, the current approach treats the joint distribution of $\beta$ and $V_d$ as the product of their marginal distributions, when in reality the joint distribution should account for their negative dependence structure.
 
@@ -1285,25 +1285,49 @@ The joint distribution in Figure 19 illustrates how $\beta$ and $V_d$ co-vary in
 
 # Visualize the joint distribution
 
+# Compute thresholds
+beta_thr <- quantile(data$beta, 0.975, na.rm = TRUE)
+Vd_thr   <- quantile(data$Vd, 0.975, na.rm = TRUE)
+
+# Add shaded region
+annotate("rect",
+         xmin = beta_thr,
+         xmax = Inf,
+         ymin = Vd_thr,
+         ymax = Inf,
+         alpha = 0.1,
+         fill = "blue")
+
+
 ggplot(data, aes(x = beta, y = Vd)) +
   geom_point(alpha = 0.6, color = "orange", size = 3) +
   geom_density_2d(color = "red") +
-  # Add the marginal 97.5th percentiles
-  geom_vline(xintercept = quantile(data$beta, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1) +
-  geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1) +
+  
+  # Highlight top-right corner
+  annotate("rect",
+           xmin = beta_thr,
+           xmax = Inf,
+           ymin = Vd_thr,
+           ymax = Inf,
+           alpha = 0.1,
+           fill = "blue") +
+  
+  # Add marginal 97.5th percentiles
+  geom_vline(xintercept = beta_thr, linetype = "dashed", color = "blue", linewidth = 1) +
+  geom_hline(yintercept = Vd_thr,   linetype = "dashed", color = "blue", linewidth = 1) +
+
   labs(
     title = "Figure 19: Joint Distribution of β and Vd",
-    subtitle = "Blue lines show marginal 97.5th percentiles",
+    subtitle = "Blue region shows values above joint 97.5th percentiles",
     x = "β (g/kg/h)",
     y = "Vd (L/kg)"
   ) +
   annotate("text", 
-           x = quantile(data$beta, 0.975, na.rm = TRUE), 
+           x = beta_thr, 
            y = min(data$Vd, na.rm = TRUE),
            label = "97.5th percentile β", size = 7, 
            hjust = -0.1, color = "blue")
+
 
 
 ```
