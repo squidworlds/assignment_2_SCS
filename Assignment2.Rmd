@@ -92,6 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 ```
+
 \newpage
 
 # Executive Summary
@@ -110,9 +111,8 @@ We therefore recommend adopting a probabilistic reporting framework based on qua
 
 -   the measured BAC and the elapsed time since driving;
 
-```{=html}
 <!-- -->
-```
+
 -   the estimated BAC at the time of driving;
 
 -   a 95% prediction interval reflecting statistical uncertainty;
@@ -707,7 +707,7 @@ The Q-Q Residuals plot is improved, however there is only marginal change in the
 
 The biggest issue with the linear model above is that it's aim is to find the conditional mean function, $E[\beta | x]$, where $x$ represents the explanatory variables of the model (weight, height and sex). The aim of our analysis is to find a threshold of $\beta$ that can be used to determine if a suspect had high blood alcohol levels while driving. Therefore we want to investigate further than the expectation, $E[\beta | x]$, and examine the spread of the whole conditional distribution, $\beta | x$. When investigating quantiles of linear models, it is more accurate to use quantile regression [@RodriguezYao2017]. As the square root made little difference, we adapt our quantile regression from the initial linear model above.
 
-Therefore we are finding the quantiles ($\tau$) of $\beta$ in the following model [@quantile_reg], where $\alpha_{j,\tau}$ represent the coefficients associated with the $\tau^{\text{th}}$ quantile for $j \in \{0, 1, 2, 3\}$ to estimate $\beta_i$, where $i \in \{1, \dots, 100\}$:$$
+Therefore we are finding the quantiles of $\beta$ in the following model [@quantile_reg], where $\alpha_{j,\tau}$ represent the coefficients associated with the $(\tau$ x $100)^{\text{th}}$ quantile for $j \in \{0, 1, 2, 3\}$, to estimate $\beta_{i,\tau}$, where $i \in \{1, \dots, 100\}$:$$
 \begin{aligned}
 \text{quantile regression model}: \quad 
 \beta_{i,\tau} &= \alpha_{0,\tau}
@@ -717,7 +717,7 @@ Therefore we are finding the quantiles ($\tau$) of $\beta$ in the following mode
 + \epsilon_{i,\tau}, \\
 \epsilon_{i,\tau} &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
 \end{aligned}
-$$To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method, we have to find $E[\beta | x] + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results.
+$$To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method, we have to find $E[\beta | x] + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, $\beta_{i,0.025}$ corresponds to the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results.
 
 The subtle differences between the methods produce different final results, as shown in Figure 12.
 
@@ -868,7 +868,7 @@ where $x$ is the legal limit (0.47 g/kg) and $F_{\beta_{\text{male}}}, F_{\beta_
 
 Quantile regression allows us to model how the lower and upper bounds of the elimination rate vary with individual characteristics. Rather than predicting the average $\beta$ for someone with given characteristics, this method directly estimates the 2.5th and 97.5th percentiles of their elimination rate.
 
-This model finds the $(\tau$ x $100)$% quantile for $\beta$:$$
+This model finds the $(\tau$ x $100)^{\text{th}}$ quantile for $\beta$:$$
 \begin{aligned}
 \text{quantile regression model}: \quad 
 \beta_{i,\tau} &= \alpha_{0,\tau}
