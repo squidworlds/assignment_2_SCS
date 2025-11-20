@@ -391,6 +391,26 @@ plot(lm_model, which = 3, caption = "", main = "Scale Location",
 plot(lm_model, which = 5, caption = "", main = "Residuals vs Leverage",
      sub.caption = "", cex.main = 1.5)
 
+# Try modelling square root of beta (residual plots indicate
+# a slight quadratic mean-variance relationship)
+
+sqrt_lm_model <- lm(sqrt(beta) ~ weight + height + sex, data = data)
+
+# Residual plots
+par(mfrow = c(2, 2), mar = c(5, 5, 3, 2), oma = c(0, 0, 5, 0), cex = 2)
+
+plot(sqrt_lm_model, which = 1, caption = "", main = "Residuals vs Fitted",
+     sub.caption = "", cex.main = 1.5)
+
+plot(sqrt_lm_model, which = 2, caption = "", main = "Q-Q Residuals",
+     sub.caption = "", cex.main = 1.5)
+
+plot(sqrt_lm_model, which = 3, caption = "", main = "Scale Location",
+     sub.caption = "", cex.main = 1.5)
+
+plot(sqrt_lm_model, which = 5, caption = "", main = "Residuals vs Leverage",
+     sub.caption = "", cex.main = 1.5)
+
 # quantile regression approach 
 
 # fit models
@@ -452,7 +472,7 @@ quantile_v_lm_plot <- ggplot() +
   ) +
   # Labels and theme
   labs(
-    title = expression("Figure 11: Actual vs Predicted 2.5% Quantile of " * beta),
+    title = expression("Figure 12: Actual vs Predicted 2.5% Quantile of " * beta),
     x = expression("Actual " * beta),
     y = expression("Predicted " * beta),
     color = "Model Type"
@@ -604,7 +624,7 @@ p <- ggplot(results_df, aes(y = Method)) +
                                  "Gamma model"             = "firebrick",
                                  "Quantile regression"     = "hotpink"),
                       name = "Method") +
-  ggtitle(expression("Figure 12: Comparison of reporting frameworks for " * C[0]))
+  ggtitle(expression("Figure 13: Comparison of reporting frameworks for " * C[0]))
 
 # Recommended Framework
 
@@ -679,28 +699,28 @@ density_plot <- ggplot(data, aes(x = Vd)) +
              color = "red",
              size = 2) +
   labs(x = "Vd (L/kg)", y = "Density", 
-       title = expression("Figure 13: Distribution of Vd"))
+       title = expression("Figure 14: Distribution of Vd"))
 
 # Vd vs weight
 weight_plot2 <- ggplot(data, aes(x = weight, y = Vd, colour = sex)) +
   geom_point(size = 3) +
   geom_smooth(method = "lm", colour = "navy") +
   scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
-  labs(title = "Figure 14: Vd vs Weight", x = "Weight (kg)", y = "Vd (L/kg)")
+  labs(title = "Figure 15: Vd vs Weight", x = "Weight (kg)", y = "Vd (L/kg)")
 
 # Vd vs height
 height_plot2 <- ggplot(data, aes(x = height, y = Vd, colour = sex)) +
   geom_point(size = 3) +
   scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   geom_smooth(method = "lm", colour = "navy") +
-  labs(title = "Figure 15: Vd vs Height", x = "Height (cm)", y = "Vd (L/kg)")
+  labs(title = "Figure 16: Vd vs Height", x = "Height (cm)", y = "Vd (L/kg)")
 
 # Vd vs age
 age_plot2 <- ggplot(data, aes(x = age, y = Vd, colour = sex)) +
   geom_point(size = 3) +
   scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   geom_smooth(method = "lm", colour = "navy") +
-  labs(title = "Figure 16: Vd vs Age", x = "Age (years)", y = "Vd (L/kg)")
+  labs(title = "Figure 17: Vd vs Age", x = "Age (years)", y = "Vd (L/kg)")
 
 # Vd vs gender
 sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
@@ -709,7 +729,7 @@ sex_plot2 <- ggplot(data, aes(x = sex, y = Vd,
   geom_boxplot(width = 0.2, color = "navy", alpha = 0.7) +
   scale_fill_manual(values = c("seagreen", "skyblue")) +
   labs(
-    title = "Figure 17: Vd vs Gender",
+    title = "Figure 18: Vd vs Gender",
     x = "Gender",
     y = "Vd (L/kg)"
   ) +
@@ -732,7 +752,7 @@ ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
   scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   geom_smooth(method = "lm", color = "navy") +
   labs(
-    title = "Figure 18: Relationship between β and Vd",
+    title = "Figure 19: Relationship between β and Vd",
     subtitle = paste0(
       "Correlation = ", round(corr_coef, 3),
       ",  p-value = ", format.pval(p_value, digits = 5, eps = .00001)
@@ -752,7 +772,7 @@ ggplot(data, aes(x = beta, y = Vd)) +
   geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
              linetype = "dashed", color = "blue", linewidth = 1.5) +
   labs(
-    title = "Figure 19: Joint Distribution of β and Vd",
+    title = "Figure 20: Joint Distribution of β and Vd",
     subtitle = "Blue lines show marginal 97.5th percentiles",
     x = "β (g/kg/h)",
     y = "V_d (L/kg)"
