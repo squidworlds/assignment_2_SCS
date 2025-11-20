@@ -671,7 +671,7 @@ Therefore we are finding the quantiles of $\beta$ in the following model [@quant
 + \epsilon_{i,\tau}, \\
 \epsilon_{i,\tau} &\overset{\mathrm{iid}}\sim \mathcal{N}(0, \sigma^2).
 \end{aligned}
-$$To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5% quantile of $\beta$ in both methods. For the linear model method, we have to find $E[\beta | x] + 2.5\text{% quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5% quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results.
+$$To further demonstrate the difference between the linear and quantile regression, consider how we would find the 2.5th quantile of $\beta$ in both methods. For the linear model method, we have to find $E[\beta | x] + 2.5^\text{th}\text{ quantile of } \epsilon_i$. This assumes that the residuals are equally distributed across the whole population of $\beta$, which could be inaccurate. On the other hand, in quantile regression, we simply find the 2.5th quantile of the distribution of $\beta | x$. Not only does this not assume that residuals are equally distributed, but it is an intuitive approach, more aligned with the current methodology of Police Scotland, while improving the accuracy of results.
 
 The subtle differences between the methods are shown in Figure 11.
 
@@ -888,7 +888,7 @@ The 95% uncertainty interval for $C_0$ is (0.44, 0.68) g/kh, and the probability
 
 **4. Proposed Approach Using Quantile Regression**
 
-We fit the model on the original dataset to find the 2.5% quantile, 50% quantile (median) and 97.5% quantile of $\beta | x$. Then we can predict given the suspect's specific characteristics (female, 70 kg, 160 cm, 70 years old), to find the 95% uncertainty interval is (0.43, 0.69) g/kg. The probability that $C_0$ exceeded the legal limit is 94%.
+We fit the model on the original dataset to find the 2.5th quantile, 50th quantile (median) and 97.5th quantile of $\beta | x$. Then we can predict given the suspect's specific characteristics (female, 70 kg, 160 cm, 70 years old), to find the 95% uncertainty interval is (0.43, 0.69) g/kg. The probability that $C_0$ exceeded the legal limit is 94%.
 
 *Verdict:* This method takes into account all the significant information about the suspect, and makes a measured conclusion with justified uncertainty. Under this method, there is 94% chance that the individual's true BAC exceeded the legal limit.
 

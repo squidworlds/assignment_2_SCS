@@ -1,23 +1,29 @@
-suppressPackageStartupMessages(library(tidyverse))
-suppressPackageStartupMessages(library(afex))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(tidyr))
-suppressPackageStartupMessages(library(lubridate))
-suppressPackageStartupMessages(library(viridis))
-suppressPackageStartupMessages(library(gridExtra))
-suppressPackageStartupMessages(library(patchwork))
-suppressPackageStartupMessages(library(kableExtra))
-suppressPackageStartupMessages(library(cv))
-suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(fitdistrplus))
-suppressPackageStartupMessages(library(readxl))
-suppressPackageStartupMessages(library(quantreg))
-suppressPackageStartupMessages(library(purrr))
-suppressPackageStartupMessages(library(broom))
+knitr::opts_chunk$set(echo = TRUE)
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(afex)
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+  library(lubridate)
+  library(viridis)
+  library(gridExtra)
+  library(patchwork)
+  library(kableExtra)
+  library(cv)
+  library(stringr)
+  library(fitdistrplus)
+  library(readxl)
+  library(quantreg)
+  library(purrr)
+  library(broom)
+  library(triangle)
+})
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%% DATA WRANGLING  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# --- data wrangling ---
 data <- read_excel("SCS_BAC_and_BrAC_split_TOP.xlsx")
 data$sex <- as.factor(data$Sex)
 data$beta60 <- data$`Beta60 (g/kg/h)`
@@ -28,29 +34,28 @@ data$beta <- -data$beta60
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BETA EDA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# --- beta EDA ---
+
 # beta vs weight
 weight_plot <- ggplot(data, aes(x=weight, y=beta, colour = sex)) +
   geom_point(size = 3) +
   geom_smooth(method="lm", color="navy") +
   scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
-  labs(title="Figure 1: β vs Weight", x="Weight (kg)",
-       y="β Elimination Rate (g/kg/h)")
+  labs(title="Figure 1: β vs Weight", x="Weight (kg)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs height
 height_plot <- ggplot(data, aes(x=height, y=beta, colour = sex)) +
   geom_point(size = 3) +
   geom_smooth(method="lm", color="navy") +
   scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
-  labs(title="Figure 2: β vs Height", x="Height (cm)",
-       y="β Elimination Rate (g/kg/h)")
+  labs(title="Figure 2: β vs Height", x="Height (cm)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs age
 age_plot <- ggplot(data, aes(x=age, y=beta, colour = sex)) +
   geom_point(size = 3) +
   geom_smooth(method="lm", color="navy") +
   scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
-  labs(title="Figure 3: β vs Age", x="Age (years)",
-       y="β Elimination Rate (g/kg/h)")
+  labs(title="Figure 3: β vs Age", x="Age (years)", y="β Elimination Rate (g/kg/h)")
 
 # beta vs gender
 sex_plot <- ggplot(data, aes(x = sex, y = beta60,
@@ -64,6 +69,7 @@ sex_plot <- ggplot(data, aes(x = sex, y = beta60,
     y = "β Elimination Rate (g/kg/h)"
   ) +
   guides(fill = "none")
+
 
 # Compute correlation and p-value between beta and each characteristic.
 corr_table <- data %>%
@@ -102,8 +108,7 @@ density_plot <- ggplot(data, aes(x = beta)) +
              linetype = "dotted",
              color = "red",
              size = 2) +
-  labs(x = expression(""*beta), y = "Density",
-       title = expression("Figure 5: Distribution of "*beta))
+  labs(x = expression(""*beta), y = "Density", title = expression("Figure 5: Distribution of "*beta))
 
 # define colours 
 sex_cols <- c("male" = "skyblue", "female" = "seagreen")
@@ -166,8 +171,6 @@ plot.legend <- c("Normal", "Beta", "Gamma")
 # Layout
 par(mfrow = c(2, 2), mar = c(5, 5, 3, 2), oma = c(0, 0, 5, 0), cex = 2)
 
-# Comparing fit of different distribution approaches.
-
 # --- DENSITY (custom lines) ---
 cols <- c("red", "green", "blue")
 ltys <- c(1, 2, 3)
@@ -213,6 +216,9 @@ ppcomp(
   main = "PP Plot Comparison",
   xlegend = "bottomright"
 )
+
+# --- Add main title across all plots ---
+mtext("Figure 7: Comparison of Fitted Distributions", outer = TRUE, cex = 3, font = 2)
 
 # Gamma approach
 
@@ -371,7 +377,7 @@ female_plot <- ggplot(f_data, aes(beta)) +
 
 #%%%%%%%%%%%%%%%%%%%%%%% LINEAR MODELLING BETA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# linear modelling beta 
+# --- linear modelling beta attempt ---
 
 # model incorporating all characteristics
 lm_model <- lm(beta ~ weight + height + sex, data = data)
@@ -379,17 +385,13 @@ lm_model <- lm(beta ~ weight + height + sex, data = data)
 # Residual plots
 par(mfrow = c(2, 2), mar = c(5, 5, 3, 2), oma = c(0, 0, 5, 0), cex = 2)
 
-plot(lm_model, which = 1, caption = "", main = "Residuals vs Fitted",
-     sub.caption = "", cex.main = 1.5)
+plot(lm_model, which = 1, caption = "", main = "Residuals vs Fitted", sub.caption = "", cex.main = 1.5)
 
-plot(lm_model, which = 2, caption = "", main = "Q-Q Residuals",
-     sub.caption = "", cex.main = 1.5)
+plot(lm_model, which = 2, caption = "", main = "Q-Q Residuals", sub.caption = "", cex.main = 1.5)
 
-plot(lm_model, which = 3, caption = "", main = "Scale Location",
-     sub.caption = "", cex.main = 1.5)
+plot(lm_model, which = 3, caption = "", main = "Scale Location", sub.caption = "", cex.main = 1.5)
 
-plot(lm_model, which = 5, caption = "", main = "Residuals vs Leverage",
-     sub.caption = "", cex.main = 1.5)
+plot(lm_model, which = 5, caption = "", main = "Residuals vs Leverage", sub.caption = "", cex.main = 1.5)
 
 # quantile regression approach 
 
@@ -398,8 +400,7 @@ lm_model <- lm(beta ~ weight + height + sex, data = data)
 rq_model <- rq(beta ~ weight + height + sex, data = data, tau = 0.025)
 
 # predictions for linear model
-pred_int <- predict(lm_model, newdata = data, interval = "prediction",
-                    level = 0.95)
+pred_int <- predict(lm_model, newdata = data, interval = "prediction", level = 0.95)
 
 # create df for comparing predicted vs actual
 pred_data <- data %>%
@@ -427,7 +428,7 @@ plot_data <- pred_data %>%
 
 # plot
 quantile_v_lm_plot <- ggplot() +
-  # Points for models (mean LM, quantile LM, quantile regression)
+  # Points for models (quantile LM, quantile regression)
   geom_point(
     data = plot_data,
     aes(x = beta, y = predicted_beta, color = model),
@@ -484,8 +485,7 @@ f_gamma_quantiles <- qgamma(c(0.025, 0.5, 0.975), f_gamma_shape, f_gamma_rate)
 C0_gamma_f <- Ct + f_gamma_quantiles * t
 
 # predicted Beta using regression model
-lm_pred_vals <- predict(lm_model, newdata = test_person,
-                        interval = "prediction", level = 0.95)
+lm_pred_vals <- predict(lm_model, newdata = test_person, interval = "prediction", level = 0.95)
 
 # C0 values from regression model
 beta_pred_lm <- as.numeric(lm_pred_vals)
@@ -493,82 +493,98 @@ names(beta_pred_lm) <- c("Fitted", "Lower (PI 2.5%)", "Upper (PI 97.5%)")
 C0_lm <- Ct + beta_pred_lm * t
 
 # predicted beta using quantile regression model
-rq_pred_vals <- predict(rq_model, newdata = test_person,
-                        interval = "confidence", level = 0.95)
+# fit quantiles
+rq_fit_quantiles <- rq(beta ~ weight + height + sex, data = data, tau = c(0.025, 0.5, 0.975))
+# predict on new data
+rq_pred_vals <- predict(rq_fit_quantiles, newdata = test_person, interval = "none")
 C0_rq <- Ct + rq_pred_vals * t
 
 # combine results into one comparison table 
 results_table <- tibble(
-  Approach = c("Population (empirical quantiles)", "Gamma Fitted",
-               "Male Gamma Fitted", "Female Gamma Fitted", "Linear Regression",
-               "Quantile Regression"),
-  Lower_2.5 = c(C0_pop[1], C0_gamma[1], C0_gamma_m[1],
-                C0_gamma_f[1], C0_lm[2], C0_rq[2]),  
-  Central   = c(C0_pop[2], C0_gamma[2], C0_gamma_m[2],
-                C0_gamma_f[2], C0_lm[1], C0_rq[1]),
-  Upper_97.5 = c(C0_pop[3], C0_gamma[3], C0_gamma_m[3],
-                 C0_gamma_f[3], C0_lm[3], C0_rq[3])
+  Approach = c("Empirical Quantiles", "Gamma Fitted", "Female Gamma Fitted", "Quantile Regression"),
+  Lower_2.5 = c(C0_pop[1], C0_gamma[1], C0_gamma_f[1], C0_rq[1]),
+  Central   = c(C0_pop[2], C0_gamma[2], C0_gamma_f[2], C0_rq[2]),
+  Upper_97.5 = c(C0_pop[3], C0_gamma[3], C0_gamma_f[3], C0_rq[3])
 )
 
-kable(results_table, digits = 3,
-      col.names = c("Approach", "Lower (2.5%)", "Central", "Upper (97.5%)"),
-      caption = "Table 4: Comparison of estimated C₀ values
-      for the various approaches")
+# setup from question
+test_person <- data.frame(weight = 70, height = 160, age = 70, sex = "female")
+Ct <- 0.15
+t  <- 2
+x_limit <- 0.47
 
 # 1. Current approach (fixed beta)
-beta_fixed <- 0.126
+beta_fixed <- quantile(data$beta, probs = 0.025)
 C0_fixed   <- Ct + beta_fixed * t
 p_fixed    <- as.numeric(C0_fixed > x_limit) 
 
-# 2. Gamma model (use report MLEs)
-gamma_shape <- 31.9538
-gamma_rate  <- 173.7079
-
+# 2. Gamma fitted approach to whole population
 beta_q025_gamma <- qgamma(0.025, shape = gamma_shape, rate = gamma_rate)
+beta_q50_gamma <- qgamma(0.5, shape = gamma_shape, rate = gamma_rate)
 beta_q975_gamma <- qgamma(0.975, shape = gamma_shape, rate = gamma_rate)
 
 C0_gamma_lower <- Ct + beta_q025_gamma * t
+C0_gamma_med <- Ct + beta_q50_gamma * t
 C0_gamma_upper <- Ct + beta_q975_gamma * t
-C0_gamma_mean  <- mean(c(C0_gamma_lower, C0_gamma_upper))
 
 # Probability analytically from Gamma CDF
 beta_threshold <- (x_limit - Ct) / t
 p_gamma <- 1 - pgamma(beta_threshold, shape = gamma_shape, rate = gamma_rate)
 
-# 3. Quantile regression approach (population-average bands)
+# 2. Gamma fitted approach to female population
+beta_q025_gamma_f <- qgamma(0.025, shape = f_gamma_shape, rate = f_gamma_rate)
+beta_q50_gamma_f <- qgamma(0.5, shape = f_gamma_shape, rate = f_gamma_rate)
+beta_q975_gamma_f <- qgamma(0.975, shape = f_gamma_shape, rate = f_gamma_rate)
+
+C0_gamma_lower_f <- Ct + beta_q025_gamma_f * t
+C0_gamma_med_f <- Ct + beta_q50_gamma_f * t
+C0_gamma_upper_f <- Ct + beta_q975_gamma_f * t
+
+# Probability analytically from Gamma CDF
+beta_threshold <- (x_limit - Ct) / t
+p_gamma_f <- 1 - pgamma(beta_threshold, shape = f_gamma_shape, rate = f_gamma_rate)
+
+# 4. Quantile regression approach
 # Fit lower/upper quantile regression for beta
-rq_lower <- rq(beta ~ weight + age + sex, data = data, tau = 0.025)
-rq_upper <- rq(beta ~ weight + age + sex, data = data, tau = 0.975)
+rq_lower <- rq(beta ~ weight + height + sex, data = data, tau = 0.025)
+rq_med <- rq(beta ~ weight + height + sex, data = data, tau = 0.5)
+rq_upper <- rq(beta ~ weight + height + sex, data = data, tau = 0.975)
 
-# Predict β quantiles for each observation in the dataset
-beta_q025_qr <- as.numeric(predict(rq_lower, newdata = data))
-beta_q975_qr <- as.numeric(predict(rq_upper, newdata = data))
+# Predict beta quantiles for each observation in the dataset
+beta_q025_qr <- as.numeric(predict(rq_lower, newdata = test_person))
+beta_q50_qr <- as.numeric(predict(rq_med, newdata = test_person))
+beta_q975_qr <- as.numeric(predict(rq_upper, newdata = test_person))
 
-# Summarize Co interval by averaging β quantiles across the population 
-C0_qr_lower <- Ct + mean(beta_q025_qr, na.rm = TRUE) * t
-C0_qr_upper <- Ct + mean(beta_q975_qr, na.rm = TRUE) * t
-C0_qr_mean  <- mean(c(C0_qr_lower, C0_qr_upper))
+# Summarize C_0 interval
+C0_qr_lower <- Ct + beta_q025_qr * t
+C0_qr_med  <- Ct + beta_q50_qr * t
+C0_qr_upper <- Ct + beta_q975_qr * t
 
-# Approximate P(Co > limit) under QR
+# Approximate P(C_0 > limit) under QR for the given suspect information
 set.seed(123)
 n_sim <- 10000
-# Sample indices and uniform draws between predicted bounds
-idx <- sample(seq_along(beta_q025_qr), size = n_sim, replace = TRUE)
-beta_samples_qr <- runif(n_sim, min = beta_q025_qr[idx], max = beta_q975_qr[idx])
-C0_samples_qr   <- Ct + beta_samples_qr * t
+# draw from triangular distribution
+beta_samples_qr <- rtriangle(
+  n = n_sim,
+  a = beta_q025_qr,
+  b = beta_q975_qr,
+  c = beta_q50_qr
+)
+# apply formula for C_0
+C0_samples_qr <- Ct + beta_samples_qr * t
 p_qr <- mean(C0_samples_qr > x_limit, na.rm = TRUE)
 
-# comparison table
+# plot
 results_df <- tibble(
-  Method = c("Current (Fixed β = 0.126)", "Gamma model", "Quantile regression"),
-  Lower  = c(C0_fixed, C0_gamma_lower, C0_qr_lower),
-  Upper  = c(C0_fixed, C0_gamma_upper, C0_qr_upper),
-  Mean   = c(C0_fixed, C0_gamma_mean, C0_qr_mean),
-  Prob   = c(p_fixed, p_gamma, p_qr)
+  Method = c("Current (Fixed β = 0.126)", "Gamma Model", "Female Gamma Model", "Quantile Regression"),
+  Lower  = c(C0_fixed, C0_gamma_lower, C0_gamma_lower_f, C0_qr_lower),
+  Upper  = c(C0_fixed, C0_gamma_upper, C0_gamma_upper_f, C0_qr_upper),
+  Mean   = c(C0_fixed, C0_gamma_med, C0_gamma_med_f, C0_qr_med),
+  Prob   = c(p_fixed, p_gamma, p_gamma_f, p_qr)
 )
 
-# Graphical comparison
-p <- ggplot(results_df, aes(y = Method)) +
+# Plot
+plot <- ggplot(results_df, aes(y = Method)) +
   # Interval bands (thin lines)
   geom_segment(aes(x = Lower, xend = Upper, y = Method, yend = Method,
                    colour = Method), linewidth = 2) +
@@ -584,9 +600,7 @@ p <- ggplot(results_df, aes(y = Method)) +
            label = "Legal limit = 0.47 g/kg",
            colour = "darkgreen", hjust = 0, size = 9) +
   annotate("rect", xmin = x_limit - 0.005, xmax = x_limit + 0.005,
-           ymin = 0.5, ymax = 3.5, alpha = 0.1, fill = "darkgreen") +
-  
-  # Probability labels (skip Current approach)
+           ymin = 0.5, ymax = 4.5, alpha = 0.1, fill = "darkgreen") +
   geom_text(
     data = results_df %>% filter(Method != first(Method)),
     aes(x = Upper, y = Method,
@@ -600,11 +614,13 @@ p <- ggplot(results_df, aes(y = Method)) +
   scale_x_continuous(name = expression(C[0]~"(g/kg)"),
                      limits = c(0.35, 0.72),
                      expand = c(0, 0)) +
-  scale_colour_manual(values = c("Current (Fixed β=0.126)" = "grey60",
-                                 "Gamma model"             = "firebrick",
-                                 "Quantile regression"     = "hotpink"),
+  scale_colour_manual(values = c("Current (Fixed β = 0.126)" = "grey60",
+                                 "Gamma Model"             = "firebrick",
+                                 "Female Gamma Model"      = "seagreen",
+                                 "Quantile Regression"     = "hotpink"),
                       name = "Method") +
-  ggtitle(expression("Figure 12: Comparison of reporting frameworks for " * C[0]))
+  ggtitle(expression("Figure 12: Comparison of Uncertainty Intervals for Reporting Frameworks for "*C[0]*" in Case Study"))
+
 
 # Recommended Framework
 
@@ -614,7 +630,6 @@ summary_table <- data.frame(
     "Measured BAC (Ct)",
     "Time since driving (t)",
     "Legal limit",
-    "Estimated C₀ (central)",
     "95% uncertainty interval",
     "Probability C₀ exceeded legal limit"
   ),
@@ -622,30 +637,11 @@ summary_table <- data.frame(
     "0.15 g/kg",
     "2 hours",
     "0.47 g/kg",
-    "0.43 g/kg",
-    "(0.34, 0.51) g/kg",
-    "74%"
+    "(0.43, 0.69) g/kg",
+    "94%"
   )
 )
 
-kable(
-  summary_table,
-  caption = "Table 5: Standardised Summary Table (Quantile Regression Approach)",
-  col.names = c("Quantity", "Value"),
-  align = c("l", "c"),
-  format = "markdown"
-)
-
-# %%%%%%%%%%%%%%%%%%%%%%% INVESTIGATING V_d %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-# define A, Co, Vd
-data$A <- data$`Amount of Alcohol Consumed (g)`
-data$Co <- data$`Co (g/Kg)`
-data$Vd <- data$A/(data$Co *data$weight)
-
-# view summary and quantiles of Vd
-summary(data$Vd)
-quantile(data$Vd, probs = c(0.025, 0.5, 0.975))
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Vd EDA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -678,8 +674,7 @@ density_plot <- ggplot(data, aes(x = Vd)) +
              linetype = "dotted",
              color = "red",
              size = 2) +
-  labs(x = "Vd (L/kg)", y = "Density", 
-       title = expression("Figure 13: Distribution of Vd"))
+  labs(x = "Vd (L/kg)", y = "Density", title = expression("Figure 13: Distribution of Vd"))
 
 # Vd vs weight
 weight_plot2 <- ggplot(data, aes(x = weight, y = Vd, colour = sex)) +
@@ -727,7 +722,7 @@ beta_range <- quantile(data$beta, probs = c(0.025, 0.975))
 Vd_range   <- quantile(data$Vd, probs = c(0.025, 0.975))
 
 # Scatter plot between beta and Vd
-ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
+scatter <- ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
   geom_point(size = 3) +
   scale_colour_manual(values = c("male" = "skyblue", "female" = "seagreen")) +
   geom_smooth(method = "lm", color = "navy") +
@@ -743,19 +738,19 @@ ggplot(data, aes(x = beta, y = Vd, colour = sex)) +
 
 # Visualize the joint distribution
 
-ggplot(data, aes(x = beta, y = Vd)) +
+joint <- ggplot(data, aes(x = beta, y = Vd)) +
   geom_point(alpha = 0.6, color = "orange", size = 3) +
-  geom_density_2d(color = "red", linewidth = 1.2) +
+  geom_density_2d(color = "red") +
   # Add the marginal 97.5th percentiles
   geom_vline(xintercept = quantile(data$beta, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1.5) +
+             linetype = "dashed", color = "blue", linewidth = 1) +
   geom_hline(yintercept = quantile(data$Vd, 0.975, na.rm = TRUE), 
-             linetype = "dashed", color = "blue", linewidth = 1.5) +
+             linetype = "dashed", color = "blue", linewidth = 1) +
   labs(
     title = "Figure 19: Joint Distribution of β and Vd",
     subtitle = "Blue lines show marginal 97.5th percentiles",
     x = "β (g/kg/h)",
-    y = "V_d (L/kg)"
+    y = "Vd (L/kg)"
   ) +
   annotate("text", 
            x = quantile(data$beta, 0.975, na.rm = TRUE), 
@@ -766,8 +761,8 @@ ggplot(data, aes(x = beta, y = Vd)) +
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ALT APPROACH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Test person 
-A <- mean(data$A) 
+# Test person (from task 2)
+A <- mean(data$A) # Chose this kinda randomly but made the most sense to me 
 weight <- 70
 t <- 2
 
@@ -775,8 +770,7 @@ t <- 2
 data$Ct_joint <- (A / (weight * data$Vd)) - data$beta * t
 
 # Compute the quantiles of C_t
-ct_quantiles <- quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975),
-                         na.rm = TRUE)
+Ct_quant <- quantile(data$Ct_joint, probs = c(0.025, 0.5, 0.975), na.rm = TRUE)
 
 # Current (independent) approach
 beta_ind <- quantile(data$beta, 0.975, na.rm = TRUE)
@@ -785,12 +779,9 @@ Ct_independent <- (A / (weight * Vd_ind)) - beta_ind * t
 
 # Table comparison
 results_compare <- tibble(
-  Method = c("Empirical joint (β, Vd)", "Independent 97.5th percentiles"),
-  Lower_2.5 = c(round(quantile(data$Ct_joint, 0.025, na.rm = TRUE), 3), ""),
-  Median     = c(round(quantile(data$Ct_joint, 0.5, na.rm = TRUE), 3), ""),
-  Upper_97.5 = c(round(quantile(data$Ct_joint, 0.975, na.rm = TRUE), 3), 
+  Method = c("Empirical joint (β,Vd)", "Independent 97.5th percentiles"),
+  Lower_2.5 = c(round(Ct_quant[1], 3), ""),
+  Median     = c(round(Ct_quant[2], 3), ""),
+  Upper_97.5 = c(round(Ct_quant[3], 3), 
                  round(Ct_independent, 3))
 )
-
-kable(results_compare, align = "lccc",
-      caption = "Table 6: Comparison of Empirical Joint vs Independent Ct")
