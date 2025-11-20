@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function() {
 ```
 \newpage
 
-# Executive Summary!
+# Executive Summary
 
 In this report we evaluate the statistical methods used by Police Scotland to estimate blood alcohol concentration (BAC) at the time of driving in drink-driving investigations. Because BAC decreases over time, the level measured at the police station is lower than the level at the time of driving. To address this, forensic analysts “back-calculate’’ the earlier concentration using an elimination rate, denoted $\beta$ [@FSR2020].
 
